@@ -6,10 +6,13 @@
 
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <arpa/inet.h>
+#include <pwd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include "config.h"
 #include "common.h"
@@ -32,8 +35,34 @@ static int handle_local(struct parsedfile *, int, char *);
 static int handle_defuser(struct parsedfile *, int, char *);
 static int handle_defpass(struct parsedfile *, int, char *);
 static int make_netent(char *value, struct netent **ent);
+static int handle_fallback(struct parsedfile *, int, char *);
 
-int read_config(char *filename, struct parsedfile *config) {
+char __attribute__ ((visibility ("hidden"))) *find_config(char *line) {
+	struct passwd* pw;
+
+	errno = 0;
+
+	pw = getpwuid(getuid());
+	if (errno) {
+		perror("getpwuid");
+		return NULL;
+	}
+
+	/* check for config in $HOME */
+	snprintf(line, MAXLINE - 1, "%s/.tsocks.conf", pw->pw_dir);
+
+	if (access(line, R_OK)) {
+		show_msg(MSGDEBUG, "Can't access %s, using " CONF_FILE " instead.\n", line);
+		strncpy(line, CONF_FILE, MAXLINE - 1);
+	}
+
+	/* Insure null termination */
+	line[MAXLINE - 1] = (char) 0;
+
+	return line;
+}
+
+int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct parsedfile *config) {
 	FILE *conf;
 	char line[MAXLINE];
 	int rc = 0;
@@ -47,12 +76,10 @@ int read_config(char *filename, struct parsedfile *config) {
 	currentcontext = &(config -> defaultserver);
 
 	/* If a filename wasn't provided, use the default */
-	if (filename == NULL) {
-		strncpy(line, CONF_FILE, sizeof(line) - 1);
-		/* Insure null termination */
-		line[sizeof(line) - 1] = (char) 0;
-		filename = line;
-	}
+	if (filename == NULL)
+		filename = find_config(line);
+
+	show_msg(MSGDEBUG, "using %s as configuration file\n", line);
 
 	/* Read the configuration file */
 	if ((conf = fopen(filename, "r")) == NULL) {
@@ -154,6 +181,8 @@ static int handle_line(struct parsedfile *config, char *line, int lineno) {
 				handle_defpass(config, lineno, words[2]);
 			} else if (!strcmp(words[0], "local")) {
 				handle_local(config, lineno, words[2]);
+			} else if (!strcmp(words[0], "fallback")) {
+				handle_fallback(config, lineno, words[2]);
 			} else {
 				show_msg(MSGERR, "Invalid pair type (%s) specified "
 					   "on line %d in configuration file, "
@@ -493,6 +522,19 @@ static int handle_local(struct parsedfile *config, int lineno, char *value) {
 	return(0);
 }
 
+static int handle_fallback(struct parsedfile *config, int lineno, char *value) {
+	char *v = strsplit(NULL, &value, " ");
+	if (config->fallback !=0) {
+		show_msg(MSGERR, "Fallback may only be specified "
+				"once in configuration file.\n",
+				lineno, currentcontext->lineno);
+	} else {
+		if(!strcmp(v, "yes")) config->fallback = 1;
+		if(!strcmp(v, "no")) config->fallback = 0;
+	}
+	return(0);
+}
+
 /* Construct a netent given a string like                             */
 /* "198.126.0.1[:portno[-portno]]/24"                                 */
 int make_netent(char *value, struct netent **ent) {
@@ -615,7 +657,7 @@ int make_netent(char *value, struct netent **ent) {
 	return(0);
 }
 
-int is_local(struct parsedfile *config, int af, void *testip) {
+int __attribute__ ((visibility ("hidden"))) is_local(struct parsedfile *config, int af, void *testip) {
 	struct netent *ent;
 
 	for (ent = config -> localnets; ent != NULL; ent = ent -> next)
@@ -626,7 +668,7 @@ int is_local(struct parsedfile *config, int af, void *testip) {
 }
 
 /* Find the appropriate server to reach an ip */
-int pick_server(struct parsedfile *config, struct serverent **ent,
+int __attribute__ ((visibility ("hidden"))) pick_server(struct parsedfile *config, struct serverent **ent,
 				int af, void *ip, unsigned int port) {
 	struct netent *net;	
 	char ipbuf[64], ipbuf2[64];
@@ -670,7 +712,7 @@ int pick_server(struct parsedfile *config, struct serverent **ent,
 /* the start pointer is set to be NULL. The difference between      */
 /* standard strsep and this function is that this one will          */
 /* set *separator to the character separator found if it isn't null */
-char *strsplit(char *separator, char **text, const char *search) {
+char __attribute__ ((visibility ("hidden"))) *strsplit(char *separator, char **text, const char *search) {
 	int len;
 	char *ret;
 

@@ -28,7 +28,7 @@ FILE *logfile = NULL;     /* File to which messages should be logged */
 int logstamp = 0;         /* Timestamp (and pid stamp) messages */
 
 /* Misc IPv4/v6 compatibility functions */
-void getipport(struct sockaddr* addr, void **ip, short *port) {
+void __attribute__ ((visibility ("hidden"))) getipport(struct sockaddr* addr, void **ip, short *port) {
 	if (addr->sa_family == AF_INET) {
 		*ip = &((struct sockaddr_in *) addr) -> sin_addr;
 		*port = ((struct sockaddr_in *) addr) -> sin_port;
@@ -38,21 +38,21 @@ void getipport(struct sockaddr* addr, void **ip, short *port) {
 	}
 }
 
-int getsockaddrsize(int af) {
+int __attribute__ ((visibility ("hidden"))) getsockaddrsize(int af) {
 	if (af == AF_INET)
 		return sizeof(struct sockaddr_in);
 	else
 		return sizeof(struct sockaddr_in6);
 }
 
-int getinaddrsize(int af) {
+int __attribute__ ((visibility ("hidden"))) getinaddrsize(int af) {
 	if (af == AF_INET)
 		return sizeof(struct in_addr);
 	else
 		return sizeof(struct in6_addr);
 }
 
-int match(int af, void *testip, void *ip, void *net) {
+int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip, void *net) {
 	if (af == AF_INET)
 		return (((struct in_addr *) testip) -> s_addr & ((struct in_addr *) net) -> s_addr) == (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr);
 	else {
@@ -64,7 +64,7 @@ int match(int af, void *testip, void *ip, void *net) {
 	}
 }
 
-int check(int af, void *ip, void *net) {
+int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, void *net) {
 	if (af == AF_INET)
 		return (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr)
 			== ((struct in_addr *) ip) -> s_addr;
@@ -78,7 +78,7 @@ int check(int af, void *ip, void *net) {
 	}
 }
 
-int resolve_ip(int af, char *host, int showmsg, int allownames, void *host_addr) {
+int __attribute__ ((visibility ("hidden"))) resolve_ip(int af, char *host, int showmsg, int allownames, void *host_addr) {
 
 	int s;
 	void *ip;
@@ -124,7 +124,7 @@ int resolve_ip(int af, char *host, int showmsg, int allownames, void *host_addr)
 /*             be logged instead of to standard error           */
 /*  timestamp - This indicates that messages should be prefixed */
 /*              with timestamps (and the process id)            */
-void set_log_options(int level, char *filename, int timestamp) {
+void __attribute__ ((visibility ("hidden"))) set_log_options(int level, char *filename, int timestamp) {
 
 	loglevel = level;
 	if (loglevel < MSGERR)
@@ -138,7 +138,7 @@ void set_log_options(int level, char *filename, int timestamp) {
 	logstamp = timestamp;
 }
 
-void show_msg(int level, char *fmt, ...) {
+void __attribute__ ((visibility ("hidden"))) show_msg(int level, char *fmt, ...) {
 	va_list ap;
 	int saveerr;
 	extern char *progname;

@@ -34,6 +34,7 @@ struct parsedfile {
 	struct netent *localnets;
 	struct serverent defaultserver;
 	struct serverent *paths;
+	int fallback;
 };
 
 /* Functions provided by parser module */

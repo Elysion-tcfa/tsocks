@@ -748,6 +748,7 @@ D["WRITE_SIGNATURE"]=" int fildes, const void *buf, size_t nbyte"
 D["RECV_SIGNATURE"]=" int socket, void *buffer, size_t length, int flags"
 D["RECVFROM_SIGNATURE"]=" int socket, void *buffer, size_t length, int flags, struct sockaddr * address, socklen_t *address_len"
 D["READ_SIGNATURE"]=" int fildes, void *buf, size_t nbyte"
+D["GETPEERNAME_SIGNATURE"]=" int __fd, struct sockaddr * __name, socklen_t *__namelen"
   for (key in D) D_is_set[key] = 1
   FS = ""
 }

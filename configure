@@ -4550,6 +4550,49 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct getpeername prototype" >&5
+$as_echo_n "checking for correct getpeername prototype... " >&6; }
+PROTO=
+PROTO1='int __fd, const struct sockaddr * __name, int *__namelen'
+PROTO2='int __fd, const struct sockaddr_in * __name, socklen_t *__namelen'
+PROTO3='int __fd, struct sockaddr * __name, socklen_t *__namelen'
+PROTO4='int __fd, const struct sockaddr * __name, socklen_t *__namelen'
+for testproto in "${PROTO1}" \
+                 "${PROTO2}" \
+                 "${PROTO3}" \
+                 "${PROTO4}"
+do
+  if test "${PROTO}" = ""; then
+    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+      #include <sys/socket.h>
+      int getpeername($testproto);
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  PROTO="$testproto";
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+  fi
+done
+if test "${PROTO}" = ""; then
+  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: getpeername(${PROTO})" >&5
+$as_echo "getpeername(${PROTO})" >&6; }
+cat >>confdefs.h <<_ACEOF
+#define GETPEERNAME_SIGNATURE ${PROTO}
+_ACEOF
+
+
 SPECIALLIBS=${LIBS}
 
 LIBS=${SIMPLELIBS}

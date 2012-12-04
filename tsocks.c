@@ -68,6 +68,7 @@ static ssize_t (*realwrite)(WRITE_SIGNATURE);
 static ssize_t (*realrecv)(RECV_SIGNATURE);
 static ssize_t (*realrecvfrom)(RECVFROM_SIGNATURE);
 static ssize_t (*realread)(READ_SIGNATURE);
+static int (*realgetpeername)(GETPEERNAME_SIGNATURE);
 static struct parsedfile *config;
 static struct connreq *requests = NULL;
 static int suid = 0;
@@ -85,6 +86,7 @@ ssize_t write(WRITE_SIGNATURE);
 ssize_t recv(RECV_SIGNATURE);
 ssize_t recvfrom(RECVFROM_SIGNATURE);
 ssize_t read(READ_SIGNATURE);
+int getpeername(GETPEERNAME_SIGNATURE);
 
 #ifdef USE_SOCKS_DNS
 int res_init(void);
@@ -108,7 +110,8 @@ static int send_socksv5_method(struct connreq *conn);
 static int send_socksv5_connect(struct connreq *conn);
 static int send_buffer(struct connreq *conn);
 static int recv_buffer(struct connreq *conn);
-static int recv_socksv5_connect(struct connreq *conn);
+static int recv_socksv5_connect1(struct connreq *conn);
+static int recv_socksv5_connect2(struct connreq *conn);
 static int read_socksv5_method(struct connreq *conn);
 static int read_socksv4_req(struct connreq *conn);
 static int read_socksv5_connect(struct connreq *conn);
@@ -137,6 +140,7 @@ void _init(void) {
 	realrecv = dlsym(RTLD_NEXT, "recv");
 	realrecvfrom = dlsym(RTLD_NEXT, "recvfrom");
 	realread = dlsym(RTLD_NEXT, "read");
+	realgetpeername = dlsym(RTLD_NEXT, "getpeername");
 	#ifdef USE_SOCKS_DNS
 	realresinit = dlsym(RTLD_NEXT, "res_init");
 	#endif
@@ -149,6 +153,7 @@ void _init(void) {
 	realsendto = dlsym(lib, "sendto");
 	realrecv = dlsym(lib, "recv");
 	realrecvfrom = dlsym(lib, "recvfrom");
+	realgetpeername = dlsym(lib, "getpeername");
 	#ifdef USE_SOCKS_DNS
 	realresinit = dlsym(lib, "res_init");
 	#endif
@@ -328,11 +333,22 @@ int connect(CONNECT_SIGNATURE) {
 	show_msg(MSGDEBUG, "Picked server %s for connection\n",
 				(path->address ? path->address : "(Not Provided)"));
 	if (path->address == NULL) {
-		if (path == &(config->defaultserver))
-			show_msg(MSGERR, "Connection needs to be made "
-								  "via default server but "
-								  "the default server has not "
-								  "been specified\n");
+		if (path == &(config->defaultserver)) {
+			if (config->fallback) {
+				show_msg(MSGERR, "Connection needs to be made "
+									  "via default server but "
+									  "the default server has not "
+									  "been specified. Fallback is 'yes' so "
+									  "Falling back to direct connection.\n");
+				return(realconnect(__fd, __addr, __len));
+			} else {
+				show_msg(MSGERR, "Connection needs to be made "
+									 "via default server but "
+									 "the default server has not "
+									 "been specified. Fallback is 'no' so "
+									 "coudln't establish the connection.\n");
+			}
+		}
 		else
 			show_msg(MSGERR, "Connection needs to be made "
 								  "via path specified at line "
@@ -398,8 +414,10 @@ int select(SELECT_SIGNATURE) {
 
 	/* If we're not currently managing any requests we can just
 	 * leave here */
-	if (!requests)
+	if (!requests) {
+		show_msg(MSGDEBUG, "No requests waiting, calling real select\n");
 		return(realselect(n, readfds, writefds, exceptfds, timeout));
+	}
 
 	get_environment();
 
@@ -801,6 +819,56 @@ int close(CLOSE_SIGNATURE) {
 	return(rc);
 }
 
+/* If we are not done setting up the connection yet, return
+ * -1 and ENOTCONN, otherwise call getpeername
+ *
+ * This is necessary since some applications, when using non-blocking connect,
+ * (like ircII) use getpeername() to find out if they are connected already.
+ *
+ * This results in races sometimes, where the client sends data to the socket
+ * before we are done with the socks connection setup.  Another solution would
+ * be to intercept send().
+ * 
+ * This could be extended to actually set the peername to the peer the
+ * client application has requested, but not for now.
+ *
+ * PP, Sat, 27 Mar 2004 11:30:23 +0100
+ */
+int getpeername(GETPEERNAME_SIGNATURE) {
+	struct connreq *conn;
+	struct sockaddr *addr;
+	socklen_t addrsize;
+	int rc;
+
+	if (realgetpeername == NULL) {
+		show_msg(MSGERR, "Unresolved symbol: getpeername\n");
+		return(-1);
+	}
+
+	show_msg(MSGDEBUG, "Call to getpeername for fd %d\n", __fd);
+
+
+	/* Are we handling this connect? */
+	if ((conn = find_socks_request(__fd, 1))) {
+		addrsize = getsockaddrsize(conn->serveraddr->sa_family);
+		addr = (struct sockaddr *) malloc(addrsize);
+		rc = realgetpeername(conn->sockid, addr, &addrsize);
+		free(addr);
+
+		/* While we are at it, we might was well try to do something useful */
+		if (conn->state != DONE) {
+			handle_request(conn);
+
+			if (conn->state != DONE) {
+				errno = ENOTCONN;
+				return(-1);
+			}
+		}
+	} else
+		rc = realgetpeername(__fd, __name, __namelen);
+	return rc;
+}
+
 /* Override misc TCP socket system calls */
 
 ssize_t send(SEND_SIGNATURE) {
@@ -998,10 +1066,13 @@ static int handle_request(struct connreq *conn) {
 				break;
 			case SENTV5CONNECT:
 				show_msg(MSGDEBUG, "Receiving reply to SOCKS V5 connect request\n");
-				conn->state = RCVV5CONNECT;
+				conn->state = RCVV5CONNECT1;
 				break;
-			case RCVV5CONNECT:
-				rc = recv_socksv5_connect(conn);
+			case RCVV5CONNECT1:
+				rc = recv_socksv5_connect1(conn);
+				break;
+			case RCVV5CONNECT2:
+				rc = recv_socksv5_connect2(conn);
 				break;
 			case GOTV5CONNECT:
 				rc = read_socksv5_connect(conn);
@@ -1159,6 +1230,10 @@ static int send_buffer(struct connreq *conn) {
 		if (rc > 0) {
 			conn->datadone += rc;
 			rc = 0;
+		} else if (rc == 0) {
+			show_msg(MSGDEBUG, "Peer has shutdown but we only read %d of %d bytes.\n",
+					conn->datadone, conn->datalen);
+			rc = ENOTCONN; /* ENOTCONN seems like the most fitting error message */
 		} else {
 			if (errno != EWOULDBLOCK)
 				show_msg(MSGDEBUG, "Write failed, %s\n", strerror(errno));
@@ -1199,17 +1274,23 @@ static int recv_buffer(struct connreq *conn) {
 	return(rc);
 }
 
-static int recv_socksv5_connect(struct connreq *conn) {
+static int recv_socksv5_connect1(struct connreq *conn) {
 	int rc = 0;
 
 	show_msg(MSGDEBUG, "Reading connect reply from SOCKS5 server\n");
 	conn->state = RECEIVING;
-	conn->nextstate = RECEIVING;
+	conn->nextstate = RCVV5CONNECT2;
 	conn->datadone = 0;
 	conn->datalen = 4;
-	if ((rc = recv_buffer(conn)) < 0)
-		return rc;
+	rc = recv_buffer(conn);
+	return rc;
+}
 
+static int recv_socksv5_connect2(struct connreq *conn) {
+	int rc = 0;
+
+	show_msg(MSGDEBUG, "Reading second connect reply from SOCKS5 server\n");
+	conn->state = RECEIVING;
 	conn->nextstate = GOTV5CONNECT;
 	conn->datadone = 0;
 	if (conn->buffer[3] == '\x01')

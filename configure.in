@@ -449,6 +449,31 @@ fi
 AC_MSG_RESULT([read(${PROTO})])
 AC_DEFINE_UNQUOTED(READ_SIGNATURE, [${PROTO}])
 
+dnl Find the correct getpeername prototype on this machine 
+AC_MSG_CHECKING(for correct getpeername prototype)
+PROTO=
+PROTO1='int __fd, const struct sockaddr * __name, int *__namelen'
+PROTO2='int __fd, const struct sockaddr_in * __name, socklen_t *__namelen'
+PROTO3='int __fd, struct sockaddr * __name, socklen_t *__namelen'
+PROTO4='int __fd, const struct sockaddr * __name, socklen_t *__namelen'
+for testproto in "${PROTO1}" \
+                 "${PROTO2}" \
+                 "${PROTO3}" \
+                 "${PROTO4}" 
+do
+  if test "${PROTO}" = ""; then
+    AC_TRY_COMPILE([
+      #include <sys/socket.h>
+      int getpeername($testproto);
+    ],,[PROTO="$testproto";],)
+  fi
+done
+if test "${PROTO}" = ""; then
+  AC_MSG_ERROR("no match found!")
+fi
+AC_MSG_RESULT([getpeername(${PROTO})])
+AC_DEFINE_UNQUOTED(GETPEERNAME_SIGNATURE, [${PROTO}])
+
 dnl Output the special librarys (libdl etc needed for tsocks)
 SPECIALLIBS=${LIBS}
 AC_SUBST(SPECIALLIBS)
