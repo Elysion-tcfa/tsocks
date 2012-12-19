@@ -812,7 +812,7 @@ int close(CLOSE_SIGNATURE) {
 								 "%d which is a connection request of status %d\n",
 					conn->sockid, conn->state);
 		if (conn->sockid != fd)
-			realclose(conn->sockid);
+			rc = realclose(conn->sockid);
 		kill_socks_request(conn);
 	}
 
@@ -863,6 +863,13 @@ int getpeername(GETPEERNAME_SIGNATURE) {
 				errno = ENOTCONN;
 				return(-1);
 			}
+		}
+
+		/* Do cheating */
+		if (rc != -1) {
+			addrsize = getsockaddrsize(conn->connaddr->sa_family);
+			memcpy(__name, conn->connaddr, addrsize);
+			*__namelen = addrsize;
 		}
 	} else
 		rc = realgetpeername(__fd, __name, __namelen);
