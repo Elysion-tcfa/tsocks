@@ -1,8 +1,8 @@
 .TH TSOCKS 1 "" "TSOCKS"
 
 .SH NAME
-.BR tsocks 
-\- Shell wrapper to simplify the use of the tsocks(8) library to 
+.BR tsocks
+\- Shell wrapper to simplify the use of the tsocks(8) library to
 transparently allow an application to use a SOCKS proxy
 .SH SYNOPSIS
 .B tsocks
@@ -21,7 +21,7 @@ would like to run socksified.
 .SH OPTIONS
 .IP \fB[application\ \fB[application's\ arguments]]
 run the application as specified with the environment (LD_PRELOAD) set
-such that tsocks(8) will transparently proxy SOCKS connections in 
+such that tsocks(8) will transparently proxy SOCKS connections in
 that program
 .IP \fB[on|off]
 this option adds or removes tsocks(8) from the LD_PRELOAD environment
@@ -38,9 +38,9 @@ Example:
 .IP \fB[show|sh]
 show the current value of the LD_PRELOAD variable
 .IP \fB<without\ any\ argument>
-create a new shell with LD_PRELOAD including tsocks(8). 
+create a new shell with LD_PRELOAD including tsocks(8).
 .PP
 .SH AUTHOR
 This script was created by Tamas SZERB <toma@rulez.org> for the debian
-package of tsocks. It (along with this manual page) have since been 
+package of tsocks. It (along with this manual page) have since been
 adapted into the main tsocks project and modified.

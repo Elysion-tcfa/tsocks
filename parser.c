@@ -102,9 +102,10 @@ int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct p
 		}
 		fclose(conf);
 
-		/* Always add the 127.0.0.1/8 and [::1]/128 subnet to local */
+		/* Always add the 127.0.0.1/8, [::1]/128 and [::ffff:127.0.0.0]/104 subnet to local */
 		handle_local(config, 0, "127.0.0.0/8");
 		handle_local(config, 0, "[::1]/128");
+		handle_local(config, 0, "[::ffff:127.0.0.0]/104");
 
 		/* Check default server */
 		check_server(&(config->defaultserver));

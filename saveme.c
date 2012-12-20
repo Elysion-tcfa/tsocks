@@ -1,9 +1,9 @@
-/* 
+/*
 
      SAVEME    - Part of the tsocks package
 		 This program is designed to be statically linked so
 		 that if a user breaks their ld.so.preload file and
-		 cannot run any dynamically linked program it can 
+		 cannot run any dynamically linked program it can
 		 delete the offending ld.so.preload file.
 
     This program is free software; you can redistribute it and/or modify
@@ -29,5 +29,5 @@ int main() {
 
 	unlink("/etc/ld.so.preload");
 
-   return(0);
+	return(0);
 }
