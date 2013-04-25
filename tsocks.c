@@ -110,11 +110,10 @@ static int send_socksv5_method(struct connreq *conn);
 static int send_socksv5_connect(struct connreq *conn);
 static int send_buffer(struct connreq *conn);
 static int recv_buffer(struct connreq *conn);
-static int recv_socksv5_connect1(struct connreq *conn);
-static int recv_socksv5_connect2(struct connreq *conn);
 static int read_socksv5_method(struct connreq *conn);
 static int read_socksv4_req(struct connreq *conn);
-static int read_socksv5_connect(struct connreq *conn);
+static int read_socksv5_connect1(struct connreq *conn);
+static int read_socksv5_connect2(struct connreq *conn);
 static int read_socksv5_auth(struct connreq *conn);
 
 void _init(void) {
@@ -769,8 +768,8 @@ int poll(POLL_SIGNATURE) {
 				 * be ready for writing), otherwise we'll just let the select loop
 				 * come around again (since we can't flag it for read, we don't know
 				 * if there is any data to be read and can't be bothered checking) */
-				if (conn->selectevents & WRITE) {
-					setevents |= POLLOUT;
+				if (conn->selectevents & POLLOUT) {
+					ufds[i].revents |= POLLOUT;
 					nevents++;
 				}
 			}
@@ -1073,16 +1072,16 @@ static int handle_request(struct connreq *conn) {
 				break;
 			case SENTV5CONNECT:
 				show_msg(MSGDEBUG, "Receiving reply to SOCKS V5 connect request\n");
-				conn->state = RCVV5CONNECT1;
+				conn->datalen = 4;
+				conn->datadone = 0;
+				conn->state = RECEIVING;
+				conn->nextstate = GOTV5CONNECT1;
 				break;
-			case RCVV5CONNECT1:
-				rc = recv_socksv5_connect1(conn);
+			case GOTV5CONNECT1:
+				rc = read_socksv5_connect1(conn);
 				break;
-			case RCVV5CONNECT2:
-				rc = recv_socksv5_connect2(conn);
-				break;
-			case GOTV5CONNECT:
-				rc = read_socksv5_connect(conn);
+			case GOTV5CONNECT2:
+				rc = read_socksv5_connect2(conn);
 				break;
 		}
 
@@ -1281,34 +1280,6 @@ static int recv_buffer(struct connreq *conn) {
 	return(rc);
 }
 
-static int recv_socksv5_connect1(struct connreq *conn) {
-	int rc = 0;
-
-	show_msg(MSGDEBUG, "Reading connect reply from SOCKS5 server\n");
-	conn->state = RECEIVING;
-	conn->nextstate = RCVV5CONNECT2;
-	conn->datadone = 0;
-	conn->datalen = 4;
-	rc = recv_buffer(conn);
-	return rc;
-}
-
-static int recv_socksv5_connect2(struct connreq *conn) {
-	int rc = 0;
-
-	show_msg(MSGDEBUG, "Reading second connect reply from SOCKS5 server\n");
-	conn->state = RECEIVING;
-	conn->nextstate = GOTV5CONNECT;
-	conn->datadone = 0;
-	if (conn->buffer[3] == '\x01')
-		conn->datalen = 6;
-	else
-		conn->datalen = 18;
-	conn->pointer += 4;
-	rc = recv_buffer(conn);
-	return rc;
-}
-
 static int read_socksv5_method(struct connreq *conn) {
 	struct passwd *nixuser;
 	char *uname, *upass;
@@ -1389,7 +1360,22 @@ static int read_socksv5_auth(struct connreq *conn) {
 	return(send_socksv5_connect(conn));
 }
 
-static int read_socksv5_connect(struct connreq *conn) {
+static int read_socksv5_connect1(struct connreq *conn) {
+	int rc = 0;
+
+	show_msg(MSGDEBUG, "Receiving second piece of reply to SOCKS V5 connect request");
+	conn->state = RECEIVING;
+	conn->nextstate = GOTV5CONNECT2;
+	conn->datadone = 0;
+	if (conn->buffer[3] == '\x01')
+		conn->datalen = 6;
+	else
+		conn->datalen = 18;
+	conn->pointer += 4;
+	return 0;
+}
+
+static int read_socksv5_connect2(struct connreq *conn) {
 
 	/* See if the connection succeeded */
 	if (conn->buffer[1] != '\x00') {

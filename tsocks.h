@@ -72,11 +72,10 @@ struct connreq {
 #define SENTV5AUTH 9
 #define GOTV5AUTH 10
 #define SENTV5CONNECT 11
-#define RCVV5CONNECT1 12
-#define RCVV5CONNECT2 13
-#define GOTV5CONNECT 14
-#define DONE 15
-#define FAILED 16
+#define GOTV5CONNECT1 12
+#define GOTV5CONNECT2 13
+#define DONE 14
+#define FAILED 15
 
 /* Flags to indicate what events a socket was select()ed for */
 #define READ (1<<0)
