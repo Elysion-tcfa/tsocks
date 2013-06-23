@@ -2144,7 +2144,12 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 
+
+
+
+
 $as_echo "#define HOSTNAMES 0" >>confdefs.h
+
 
 
 
@@ -2181,7 +2186,7 @@ fi
 if test "${with_conf+set}" = set; then :
   withval=$with_conf;
 if test "${withval}" = "yes" ; then
-  as_fn_error $? "\"--with-conf requires the location of the configuration file as an argument\"" "$LINENO" 5
+  as_fn_error $? "--with-conf requires the location of the configuration file as an argument" "$LINENO" 5
 else
   cat >>confdefs.h <<_ACEOF
 #define CONF_FILE "${withval}"
@@ -3195,8 +3200,8 @@ $as_echo "no, using $LN_S" >&6; }
 fi
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking \"if the C compiler accepts -Wall\"" >&5
-$as_echo_n "checking \"if the C compiler accepts -Wall\"... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking if the C compiler accepts -Wall" >&5
+$as_echo_n "checking if the C compiler accepts -Wall... " >&6; }
 OLDCFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wall"
 
@@ -3624,7 +3629,7 @@ ac_fn_c_check_header_mongrel "$LINENO" "dlfcn.h" "ac_cv_header_dlfcn_h" "$ac_inc
 if test "x$ac_cv_header_dlfcn_h" = xyes; then :
 
 else
-  as_fn_error $? "\"dlfcn.h not found\"" "$LINENO" 5
+  as_fn_error $? "dlfcn.h not found" "$LINENO" 5
 fi
 
 
@@ -3633,7 +3638,7 @@ ac_fn_c_check_header_mongrel "$LINENO" "sys/socket.h" "ac_cv_header_sys_socket_h
 if test "x$ac_cv_header_sys_socket_h" = xyes; then :
 
 else
-  as_fn_error $? "\"sys/socket.h not found\"" "$LINENO" 5
+  as_fn_error $? "sys/socket.h not found" "$LINENO" 5
 fi
 
 
@@ -3642,7 +3647,7 @@ ac_fn_c_check_header_mongrel "$LINENO" "arpa/inet.h" "ac_cv_header_arpa_inet_h" 
 if test "x$ac_cv_header_arpa_inet_h" = xyes; then :
 
 else
-  as_fn_error $? "\"arpa/inet.h not found\"" "$LINENO" 5
+  as_fn_error $? "arpa/inet.h not found" "$LINENO" 5
 fi
 
 
@@ -3651,7 +3656,7 @@ ac_fn_c_check_header_mongrel "$LINENO" "fcntl.h" "ac_cv_header_fcntl_h" "$ac_inc
 if test "x$ac_cv_header_fcntl_h" = xyes; then :
 
 else
-  as_fn_error $? "\"fcntl.h not found\"" "$LINENO" 5
+  as_fn_error $? "fcntl.h not found" "$LINENO" 5
 fi
 
 
@@ -3660,7 +3665,7 @@ ac_fn_c_check_header_mongrel "$LINENO" "sys/poll.h" "ac_cv_header_sys_poll_h" "$
 if test "x$ac_cv_header_sys_poll_h" = xyes; then :
 
 else
-  as_fn_error $? "\"sys/poll.h not found\"" "$LINENO" 5
+  as_fn_error $? "sys/poll.h not found" "$LINENO" 5
 fi
 
 
@@ -3689,7 +3694,7 @@ _ACEOF
 
 else
 
-	       as_fn_error $? "\"Required function not found\"" "$LINENO" 5
+	       as_fn_error $? "Required function not found" "$LINENO" 5
 fi
 done
 
@@ -3746,7 +3751,7 @@ fi
 done
 LIBS="${OLDLIBS} -l${CONNECTLIB}"
 if test "${CONNECTLIB}" = ""; then
-  as_fn_error $? "'Could not find library containing connect()'" "$LINENO" 5
+  as_fn_error $? "Could not find library containing connect()" "$LINENO" 5
 fi
 
 ac_fn_c_check_func "$LINENO" "socket" "ac_cv_func_socket"
@@ -3798,25 +3803,31 @@ _ACEOF
   LIBS="-lsocket $LIBS"
 
 else
-  as_fn_error $? "\"socket function not found\"" "$LINENO" 5
+  as_fn_error $? "socket function not found" "$LINENO" 5
 fi
 
 fi
 
 
-ac_fn_c_check_func "$LINENO" "inet_aton" "ac_cv_func_inet_aton"
+ac_fn_c_check_func "$LINENO" "inet_pton" "ac_cv_func_inet_pton"
+if test "x$ac_cv_func_inet_pton" = xyes; then :
+  $as_echo "#define HAVE_INET_PTON 1" >>confdefs.h
+
+else
+
+  ac_fn_c_check_func "$LINENO" "inet_aton" "ac_cv_func_inet_aton"
 if test "x$ac_cv_func_inet_aton" = xyes; then :
   $as_echo "#define HAVE_INET_ATON 1" >>confdefs.h
 
 else
 
-  ac_fn_c_check_func "$LINENO" "inet_addr" "ac_cv_func_inet_addr"
+    ac_fn_c_check_func "$LINENO" "inet_addr" "ac_cv_func_inet_addr"
 if test "x$ac_cv_func_inet_addr" = xyes; then :
   $as_echo "#define HAVE_INET_ADDR 1" >>confdefs.h
 
 else
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inet_addr in -lnsl" >&5
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for inet_addr in -lnsl" >&5
 $as_echo_n "checking for inet_addr in -lnsl... " >&6; }
 if ${ac_cv_lib_nsl_inet_addr+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -3855,24 +3866,50 @@ $as_echo "$ac_cv_lib_nsl_inet_addr" >&6; }
 if test "x$ac_cv_lib_nsl_inet_addr" = xyes; then :
    $as_echo "#define HAVE_INET_ADDR 1" >>confdefs.h
 
-                                   LIBS="${LIBS} -lnsl"
+                                     LIBS="${LIBS} -lnsl"
 else
 
-		as_fn_error $? "\"Neither inet_aton or inet_addr present\"" "$LINENO" 5
+  		as_fn_error $? "Neither inet_pton, inet_aton or inet_addr present" "$LINENO" 5
 fi
 
 fi
 
 fi
 
+fi
 
-ac_fn_c_check_func "$LINENO" "gethostbyname" "ac_cv_func_gethostbyname"
+
+ac_fn_c_check_func "$LINENO" "inet_ntop" "ac_cv_func_inet_ntop"
+if test "x$ac_cv_func_inet_ntop" = xyes; then :
+  $as_echo "#define HAVE_INET_NTOP 1" >>confdefs.h
+
+else
+
+  ac_fn_c_check_func "$LINENO" "inet_ntoa" "ac_cv_func_inet_ntoa"
+if test "x$ac_cv_func_inet_ntoa" = xyes; then :
+  $as_echo "#define HAVE_INET_NTOA 1" >>confdefs.h
+
+else
+
+  		as_fn_error $? "Neither inet_ntop or inet_ntoa present" "$LINENO" 5
+fi
+
+fi
+
+
+ac_fn_c_check_func "$LINENO" "getaddrinfo" "ac_cv_func_getaddrinfo"
+if test "x$ac_cv_func_getaddrinfo" = xyes; then :
+  $as_echo "#define HAVE_GETADDRINFO 1" >>confdefs.h
+
+else
+
+  ac_fn_c_check_func "$LINENO" "gethostbyname" "ac_cv_func_gethostbyname"
 if test "x$ac_cv_func_gethostbyname" = xyes; then :
   $as_echo "#define HAVE_GETHOSTBYNAME 1" >>confdefs.h
 
 else
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gethostbyname in -lxnet" >&5
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for gethostbyname in -lxnet" >&5
 $as_echo_n "checking for gethostbyname in -lxnet... " >&6; }
 if ${ac_cv_lib_xnet_gethostbyname+:} false; then :
   $as_echo_n "(cached) " >&6
@@ -3913,12 +3950,39 @@ if test "x$ac_cv_lib_xnet_gethostbyname" = xyes; then :
 
 else
 
-	       as_fn_error $? "\"gethostbyname not found, name lookups in \" \
-		      \"tsocks and inspectsocks disabled\"" "$LINENO" 5
+  	  as_fn_error $? "gethostbyname not found, name lookups in
+  		      tsocks and inspectsocks disabled" "$LINENO" 5
 fi
 
 fi
 
+fi
+
+
+if test "x$ac_cv_func_inet_pton" = "xyes" && test "x$ac_cv_func_getaddrinfo" = "xyes"; then
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+ #include <sys/socket.h>
+ #ifdef AF_INET6
+   yes
+ #endif
+
+_ACEOF
+if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
+  $EGREP "yes" >/dev/null 2>&1; then :
+  $as_echo "#define ENABLE_IPV6 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: ipv6 is disabled" >&5
+$as_echo "ipv6 is disabled" >&6; }
+fi
+rm -f conftest*
+
+else
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: ipv6 is disabled" >&5
+$as_echo "ipv6 is disabled" >&6; }
+fi
 
 SIMPLELIBS=${LIBS}
 LIBS=
@@ -3967,12 +4031,12 @@ _ACEOF
   LIBS="-ldl $LIBS"
 
 else
-  as_fn_error $? "\"libdl is required\"" "$LINENO" 5
+  as_fn_error $? "libdl is required" "$LINENO" 5
 fi
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking \"for RTLD_NEXT from dlfcn.h\"" >&5
-$as_echo_n "checking \"for RTLD_NEXT from dlfcn.h\"... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for RTLD_NEXT from dlfcn.h" >&5
+$as_echo_n "checking for RTLD_NEXT from dlfcn.h... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -3992,8 +4056,8 @@ else
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"for RTLD_NEXT from dlfcn.h with _GNU_SOURCE\"" >&5
-$as_echo_n "checking \"for RTLD_NEXT from dlfcn.h with _GNU_SOURCE\"... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for RTLD_NEXT from dlfcn.h with _GNU_SOURCE" >&5
+$as_echo_n "checking for RTLD_NEXT from dlfcn.h with _GNU_SOURCE... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -4056,7 +4120,7 @@ fi
 
 if test "${enable_socksdns}" = "yes" -a \
         "x${enable_hostnames}" = "x" ; then
-  as_fn_error $? "\"--enable-socksdns is not valid without --disable-hostnames\"" "$LINENO" 5
+  as_fn_error $? "--enable-socksdns is not valid without --disable-hostnames" "$LINENO" 5
 fi
 
 if test "${oldmethod}" = "yes"; then
@@ -4099,7 +4163,7 @@ fi
 
 
   if test "${FIND}" = ""; then
-    as_fn_error $? "'find not found in path'" "$LINENO" 5
+    as_fn_error $? "find not found in path" "$LINENO" 5
   fi
 
       # Extract the first word of "tail", so it can be a program name with args.
@@ -4140,11 +4204,11 @@ fi
 
 
   if test "${TAIL}" = ""; then
-    as_fn_error $? "'tail not found in path'" "$LINENO" 5
+    as_fn_error $? "tail not found in path" "$LINENO" 5
   fi
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"location of lib${CONNECTLIB}.so\"" >&5
-$as_echo_n "checking \"location of lib${CONNECTLIB}.so\"... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking location of lib${CONNECTLIB}.so" >&5
+$as_echo_n "checking location of lib${CONNECTLIB}.so... " >&6; }
   LIBCONNECT=
   for DIR in '/lib' '/usr/lib'; do
     if test "${LIBCONNECT}" = ""; then
@@ -4157,14 +4221,14 @@ $as_echo_n "checking \"location of lib${CONNECTLIB}.so\"... " >&6; }
 _ACEOF
 
   if test "${LIBCONNECT}" = ""; then
-     as_fn_error $? "\"not found!\"" "$LINENO" 5
+     as_fn_error $? "not found!" "$LINENO" 5
   fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LIBCONNECT" >&5
 $as_echo "$LIBCONNECT" >&6; }
 
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking \"location of libc.so\"" >&5
-$as_echo_n "checking \"location of libc.so\"... " >&6; }
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking location of libc.so" >&5
+$as_echo_n "checking location of libc.so... " >&6; }
   LIBC=
   for DIR in '/lib' '/usr/lib'; do
     if test "${LIBC}" = ""; then
@@ -4177,7 +4241,7 @@ $as_echo_n "checking \"location of libc.so\"... " >&6; }
 _ACEOF
 
   if test "${LIBC}" = ""; then
-     as_fn_error $? "\"not found!\"" "$LINENO" 5
+     as_fn_error $? "not found!" "$LINENO" 5
   fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $LIBC" >&5
@@ -4213,7 +4277,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: select(${PROTO})" >&5
 $as_echo "select(${PROTO})" >&6; }
@@ -4256,7 +4320,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: connect(${PROTO})" >&5
 $as_echo "connect(${PROTO})" >&6; }
@@ -4304,7 +4368,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: close(${PROTO})" >&5
 $as_echo "close(${PROTO})" >&6; }
@@ -4340,7 +4404,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: poll(${PROTO})" >&5
 $as_echo "poll(${PROTO})" >&6; }
@@ -4376,7 +4440,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: send(${PROTO})" >&5
 $as_echo "send(${PROTO})" >&6; }
@@ -4419,7 +4483,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: sendto(${PROTO})" >&5
 $as_echo "sendto(${PROTO})" >&6; }
@@ -4455,7 +4519,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: write(${PROTO})" >&5
 $as_echo "write(${PROTO})" >&6; }
@@ -4491,7 +4555,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: recv(${PROTO})" >&5
 $as_echo "recv(${PROTO})" >&6; }
@@ -4534,7 +4598,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: recvfrom(${PROTO})" >&5
 $as_echo "recvfrom(${PROTO})" >&6; }
@@ -4570,7 +4634,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: read(${PROTO})" >&5
 $as_echo "read(${PROTO})" >&6; }
@@ -4613,7 +4677,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
   fi
 done
 if test "${PROTO}" = ""; then
-  as_fn_error $? "\"no match found!\"" "$LINENO" 5
+  as_fn_error $? "no match found!" "$LINENO" 5
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: getpeername(${PROTO})" >&5
 $as_echo "getpeername(${PROTO})" >&6; }

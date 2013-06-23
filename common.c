@@ -29,28 +29,69 @@ int logstamp = 0;         /* Timestamp (and pid stamp) messages */
 
 /* Misc IPv4/v6 compatibility functions */
 void __attribute__ ((visibility ("hidden"))) getipport(struct sockaddr* addr, void **ip, short *port) {
+#ifdef ENABLE_IPV6
 	if (addr->sa_family == AF_INET) {
+#endif
 		*ip = &((struct sockaddr_in *) addr) -> sin_addr;
 		*port = ((struct sockaddr_in *) addr) -> sin_port;
-	} else {
+#ifdef ENABLE_IPV6
+	}
+	else {
 		*ip = &((struct sockaddr_in6 *) addr) -> sin6_addr;
 		*port = ((struct sockaddr_in6 *) addr) -> sin6_port;
 	}
+#endif
 }
 
 int __attribute__ ((visibility ("hidden"))) getsockaddrsize(int af) {
+#ifdef ENABLE_IPV6
 	if (af == AF_INET)
+#endif
 		return sizeof(struct sockaddr_in);
+#ifdef ENABLE_IPV6
 	else
 		return sizeof(struct sockaddr_in6);
+#endif
 }
 
 int __attribute__ ((visibility ("hidden"))) getinaddrsize(int af) {
+#ifdef ENABLE_IPV6
 	if (af == AF_INET)
+#endif
 		return sizeof(struct in_addr);
+#ifdef ENABLE_IPV6
 	else
 		return sizeof(struct in6_addr);
+#endif
 }
+
+#ifndef HAVE_INET_PTON
+int __attribute__ ((visibility ("hidden"))) inet_pton(int af, const char *src, void *dst) {
+#ifdef HAVE_INET_ATON
+	int ret = inet_aton(src, dst);
+	return ret != 0;
+#else
+	in_addr_t ret = inet_addr(src);
+	if (ret = (unsigned) -1) return 0;
+	else {
+		* (in_addr *) dst = ret;
+		return 1;
+	}
+#endif
+}
+#endif
+
+#ifndef HAVE_INET_NTOP
+const char *__attribute__ ((visibility ("hidden"))) inet_ntop(int af, const void *src, char *dst, socklen_t size) {
+	char *res = inet_ntoa(* (struct in_addr *) src);
+	if (strlen(res) > size) {
+		errno = ENOSPC;
+		return NULL;
+	}
+	strcpy(dst, res);
+	return dst;
+}
+#endif
 
 int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip, void *net) {
 	if (af == AF_INET)
@@ -90,6 +131,7 @@ int __attribute__ ((visibility ("hidden"))) resolve_ip(int af, char *host, int s
 			return -1;
 	}
 
+#ifdef HAVE_GETADDRINFO
 	struct addrinfo hints, *result;
 
 	memset(&hints, 0, sizeof(struct addrinfo));
@@ -100,17 +142,25 @@ int __attribute__ ((visibility ("hidden"))) resolve_ip(int af, char *host, int s
 
 	if ((s = getaddrinfo(host, NULL, &hints, &result)) != 0)
 		return -1;
-	else {
-		memcpy(host_addr, result -> ai_addr, getsockaddrsize(af));
-		freeaddrinfo(result);
-		if (showmsg) {
-			char buf[60];
-			getipport(host_addr, &ip, &port);
-			inet_ntop(af, ip, buf, 60);
-			printf("Connecting to %s...\n", buf);
-		}
-		return 0;
+	memcpy(host_addr, result -> ai_addr, result -> ai_addrlen);
+	freeaddrinfo(result);
+#else
+	struct hostent *new;
+
+	if ((new = gethostbyname(host)) == NULL || new -> h_addrtype != af)
+		return -1;
+	((struct sockaddr_in *) host_addr) -> sin_family = af;
+	memcpy(&((struct sockaddr_in *) host_addr) -> sin_addr.s_addr, * new -> h_addr_list, new -> h_length);
+#endif
+
+	if (showmsg) {
+		char buf[60];
+
+		getipport(host_addr, &ip, &port);
+		inet_ntop(af, ip, buf, 60);
+		printf("Connecting to %s...\n", buf);
 	}
+	return 0;
 }
 
 /* Set logging options, the options are as follows:             */

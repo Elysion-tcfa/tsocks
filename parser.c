@@ -86,7 +86,9 @@ int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct p
 		show_msg(MSGERR, "Could not open socks configuration file "
 			   "(%s), assuming all networks local\n", filename);
 		handle_local(config, 0, "0.0.0.0/0");
+#ifdef ENABLE_IPV6
 		handle_local(config, 0, "[::]/0");
+#endif
 		rc = 1; /* Severe errors reading configuration */
 	}	
 	else {
@@ -104,8 +106,10 @@ int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct p
 
 		/* Always add the 127.0.0.1/8, [::1]/128 and [::ffff:127.0.0.0]/104 subnet to local */
 		handle_local(config, 0, "127.0.0.0/8");
+#ifdef ENABLE_IPV6
 		handle_local(config, 0, "[::1]/128");
 		handle_local(config, 0, "[::ffff:127.0.0.0]/104");
+#endif
 
 		/* Check default server */
 		check_server(&(config->defaultserver));
@@ -556,6 +560,7 @@ int make_netent(char *value, struct netent **ent) {
 	split = buf;
 
 	/* Now rip it up */
+#ifdef ENABLE_IPV6
 	if (split[0] == '[') {
 		af = AF_INET6;
 		*split = '\0';
@@ -565,9 +570,12 @@ int make_netent(char *value, struct netent **ent) {
 		*split = '\0';
 		split ++;
 	} else {
+#endif
 		af = AF_INET;
 		ip = strsplit(&separator, &split, "/:");
+#ifdef ENABLE_IPV6
 	}
+#endif
 	if (separator == ':') {
 		/* We have a start port */
 		startport = strsplit(&separator, &split, "-/");

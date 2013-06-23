@@ -21,10 +21,12 @@ AH_TEMPLATE([USE_GNU_SOURCE],
 AH_TEMPLATE([USE_OLD_DLSYM],
 			[dlopen() the old libc to get connect() instead of RTLD_NEXT, 
 			 hopefully shouldn't be needed])
+AH_TEMPLATE([ENABLE_IPV6],
+			[Enable ipv6 interception in tsocks])
 AH_TEMPLATE([LIBCONNECT],
-			[path to library containing connect(), needed if USE_OLD_DLSYM is enabled])
+			[Path to library containing connect(), needed if USE_OLD_DLSYM is enabled])
 AH_TEMPLATE([LIBC],
-			[path to libc, needed if USE_OLD_DLSYM is enabled])
+			[Path to libc, needed if USE_OLD_DLSYM is enabled])
 AH_TEMPLATE([USE_SOCKS_DNS],
 			[Configure the system resolver to use TCP queries on startup, this
 			 allows socksified DNS])
@@ -59,6 +61,15 @@ AH_TEMPLATE([HAVE_INET_ADDR],
 AH_TEMPLATE([HAVE_INET_ATON],
 			[Work out which function we have for conversion from string IPs to 
 			 numerical ones])
+AH_TEMPLATE([HAVE_INET_PTON],
+			[Work out which function we have for conversion from string IPs to 
+			 numerical ones])
+AH_TEMPLATE([HAVE_INET_NTOA],
+			[Work out which function we have for conversion from numerical IPs to 
+			 string ones])
+AH_TEMPLATE([HAVE_INET_NTOP],
+			[Work out which function we have for conversion from numerical IPs to 
+			 string ones])
 AH_TEMPLATE([DEFINE_STRSEP],
 			[We use strsep which isn't on all machines, but we provide our own
 			 definition of it for those which don't have it, this causes us to define
@@ -69,6 +80,9 @@ AC_DEFINE([HOSTNAMES], 0,
 		   reasons, it also introduces overhead, but people seem to want it])
 AH_TEMPLATE([HAVE_GETHOSTBYNAME],
 			[We need the gethostbyname() function to do dns lookups in tsocks or 
+			 in inspectsocks])
+AH_TEMPLATE([HAVE_GETADDRINFO],
+			[We need the getaddrinfo() function to do dns lookups in tsocks or 
 			 in inspectsocks])
 AH_TEMPLATE([CONF_FILE],
 			[Location of configuration file (typically /etc/tsocks.conf)])
@@ -92,7 +106,7 @@ AC_ARG_ENABLE(envconf,
 AC_ARG_WITH(conf,
 [  --with-conf=<file>      location of configuration file (/etc/tsocks.conf default)],[
 if test "${withval}" = "yes" ; then
-  AC_MSG_ERROR("--with-conf requires the location of the configuration file as an argument")
+  AC_MSG_ERROR([--with-conf requires the location of the configuration file as an argument])
 else
   AC_DEFINE_UNQUOTED(CONF_FILE, "${withval}")
 fi
@@ -112,7 +126,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 
 dnl Check if the C compiler accepts -Wall
-AC_MSG_CHECKING("if the C compiler accepts -Wall")
+AC_MSG_CHECKING([if the C compiler accepts -Wall])
 OLDCFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS -Wall"
 AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[AC_MSG_RESULT(yes)],[
@@ -123,26 +137,26 @@ dnl Checks for standard header files.
 AC_HEADER_STDC
 
 dnl Check for the dynamic loader function header
-AC_CHECK_HEADER(dlfcn.h,,AC_MSG_ERROR("dlfcn.h not found"))
+AC_CHECK_HEADER(dlfcn.h,,AC_MSG_ERROR([dlfcn.h not found]))
 
 dnl Check for the socket header
-AC_CHECK_HEADER(sys/socket.h,,AC_MSG_ERROR("sys/socket.h not found"))
+AC_CHECK_HEADER(sys/socket.h,,AC_MSG_ERROR([sys/socket.h not found]))
 
 dnl Check for the arpa/inet.h header (inet_ntoa and inet_addr)
-AC_CHECK_HEADER(arpa/inet.h,,AC_MSG_ERROR("arpa/inet.h not found"))
+AC_CHECK_HEADER(arpa/inet.h,,AC_MSG_ERROR([arpa/inet.h not found]))
 
 dnl Check for the fcntl header
-AC_CHECK_HEADER(fcntl.h,,AC_MSG_ERROR("fcntl.h not found"))
+AC_CHECK_HEADER(fcntl.h,,AC_MSG_ERROR([fcntl.h not found]))
 
 dnl Check for the poll header
-AC_CHECK_HEADER(sys/poll.h,,AC_MSG_ERROR("sys/poll.h not found"))
+AC_CHECK_HEADER(sys/poll.h,,AC_MSG_ERROR([sys/poll.h not found]))
 
 dnl Other headers we're interested in
 AC_CHECK_HEADERS(unistd.h)
 
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strcspn strdup strerror strspn strtol,,[
-	       AC_MSG_ERROR("Required function not found")])
+	       AC_MSG_ERROR([Required function not found])])
 
 dnl First find the library that contains connect() (obviously
 dnl the most important library for us). Once we've found it
@@ -160,26 +174,47 @@ for LIB in c socket; do
 done
 LIBS="${OLDLIBS} -l${CONNECTLIB}"
 if test "${CONNECTLIB}" = ""; then
-  AC_MSG_ERROR('Could not find library containing connect()')
+  AC_MSG_ERROR([Could not find library containing connect()])
 fi
 
 dnl Check for socket
 AC_CHECK_FUNC(socket,, [
-  AC_CHECK_LIB(socket, socket,,AC_MSG_ERROR("socket function not found"))])
+  AC_CHECK_LIB(socket, socket,,AC_MSG_ERROR([socket function not found]))])
 
 dnl Check for a function to convert an ascii ip address
 dnl to a sin_addr.
-AC_CHECK_FUNC(inet_aton, AC_DEFINE(HAVE_INET_ATON), [
-  AC_CHECK_FUNC(inet_addr, AC_DEFINE(HAVE_INET_ADDR), [
-    AC_CHECK_LIB(nsl, inet_addr, [ AC_DEFINE(HAVE_INET_ADDR)
-                                   LIBS="${LIBS} -lnsl" ], [
-		AC_MSG_ERROR("Neither inet_aton or inet_addr present")])])])
+AC_CHECK_FUNC(inet_pton, AC_DEFINE(HAVE_INET_PTON), [
+  AC_CHECK_FUNC(inet_aton, AC_DEFINE(HAVE_INET_ATON), [
+    AC_CHECK_FUNC(inet_addr, AC_DEFINE(HAVE_INET_ADDR), [
+      AC_CHECK_LIB(nsl, inet_addr, [ AC_DEFINE(HAVE_INET_ADDR)
+                                     LIBS="${LIBS} -lnsl" ], [
+  		AC_MSG_ERROR([Neither inet_pton, inet_aton or inet_addr present])])])])])
 
-dnl Look for gethostbyname (needed by tsocks and inspectsocks)
-AC_CHECK_FUNC(gethostbyname, AC_DEFINE(HAVE_GETHOSTBYNAME), [
-  AC_CHECK_LIB(xnet, gethostbyname, AC_DEFINE(HAVE_GETHOSTBYNAME), [
-	       AC_MSG_ERROR(["gethostbyname not found, name lookups in " \
-		      "tsocks and inspectsocks disabled"])])])
+dnl Check for a function to convert a sin_addr to an
+dnl ascii ip address.
+AC_CHECK_FUNC(inet_ntop, AC_DEFINE(HAVE_INET_NTOP), [
+  AC_CHECK_FUNC(inet_ntoa, AC_DEFINE(HAVE_INET_NTOA), [
+  		AC_MSG_ERROR([Neither inet_ntop or inet_ntoa present])])])
+
+dnl Look for getaddrinfo/gethostbyname (needed by tsocks and inspectsocks)
+AC_CHECK_FUNC(getaddrinfo, AC_DEFINE(HAVE_GETADDRINFO), [
+  AC_CHECK_FUNC(gethostbyname, AC_DEFINE(HAVE_GETHOSTBYNAME), [
+    AC_CHECK_LIB(xnet, gethostbyname, AC_DEFINE(HAVE_GETHOSTBYNAME), [
+  	  AC_MSG_ERROR([gethostbyname not found, name lookups in
+  		      tsocks and inspectsocks disabled])])])])
+
+dnl Check if constant AF_INET6 is present
+if test "x$ac_cv_func_inet_pton" = "xyes" && test "x$ac_cv_func_getaddrinfo" = "xyes"; then
+AC_EGREP_CPP(yes,
+[
+ #include <sys/socket.h>
+ #ifdef AF_INET6
+   yes
+ #endif
+], [AC_DEFINE(ENABLE_IPV6)], [AC_MSG_RESULT(ipv6 is disabled)])
+else
+AC_MSG_RESULT(ipv6 is disabled)
+fi
 
 dnl The simple programs (saveme and inspectsocks) have no further
 dnl requirements, so save the libs needed here and use them in the
@@ -189,10 +224,10 @@ LIBS=
 
 dnl Checks for libraries.
 dnl Replace `main' with a function in -ldl:
-AC_CHECK_LIB(dl, dlsym,,AC_MSG_ERROR("libdl is required"))
+AC_CHECK_LIB(dl, dlsym,,AC_MSG_ERROR([libdl is required]))
 
 dnl If we're using gcc here define _GNU_SOURCE
-AC_MSG_CHECKING("for RTLD_NEXT from dlfcn.h")
+AC_MSG_CHECKING([for RTLD_NEXT from dlfcn.h])
 AC_EGREP_CPP(yes,
 [
  #include <dlfcn.h>
@@ -203,7 +238,7 @@ AC_EGREP_CPP(yes,
   AC_MSG_RESULT(yes)
 ], [
   AC_MSG_RESULT(no)
-  AC_MSG_CHECKING("for RTLD_NEXT from dlfcn.h with _GNU_SOURCE")
+  AC_MSG_CHECKING([for RTLD_NEXT from dlfcn.h with _GNU_SOURCE])
   AC_EGREP_CPP(yes,
   [
    #define _GNU_SOURCE
@@ -244,7 +279,7 @@ fi
 
 if test "${enable_socksdns}" = "yes" -a \
         "x${enable_hostnames}" = "x" ; then
-  AC_MSG_ERROR("--enable-socksdns is not valid without --disable-hostnames")
+  AC_MSG_ERROR([--enable-socksdns is not valid without --disable-hostnames])
 fi
 
 dnl If we have to use the old method of overriding connect (i.e no
@@ -259,18 +294,18 @@ if test "${oldmethod}" = "yes"; then
   dnl in the path
   AC_CHECK_PROG(FIND, find, find)
   if test "${FIND}" = ""; then
-    AC_MSG_ERROR('find not found in path')
+    AC_MSG_ERROR([find not found in path])
   fi
 
   dnl Find tail, it should always be somewhere in the path
   dnl but for safety's sake
   AC_CHECK_PROG(TAIL, tail, tail)
   if test "${TAIL}" = ""; then
-    AC_MSG_ERROR('tail not found in path')
+    AC_MSG_ERROR([tail not found in path])
   fi
 
   dnl Now find the library we need
-  AC_MSG_CHECKING("location of lib${CONNECTLIB}.so")
+  AC_MSG_CHECKING([location of lib${CONNECTLIB}.so])
   LIBCONNECT=
   for DIR in '/lib' '/usr/lib'; do
     if test "${LIBCONNECT}" = ""; then
@@ -280,13 +315,13 @@ if test "${oldmethod}" = "yes"; then
 
   AC_DEFINE_UNQUOTED(LIBCONNECT, "${LIBCONNECT}")
   if test "${LIBCONNECT}" = ""; then
-     AC_MSG_ERROR("not found!")
+     AC_MSG_ERROR([not found!])
   fi
 
   AC_MSG_RESULT($LIBCONNECT)
 
   dnl close() should be in libc, find it
-  AC_MSG_CHECKING("location of libc.so")
+  AC_MSG_CHECKING([location of libc.so])
   LIBC=
   for DIR in '/lib' '/usr/lib'; do
     if test "${LIBC}" = ""; then
@@ -296,7 +331,7 @@ if test "${oldmethod}" = "yes"; then
 
   AC_DEFINE_UNQUOTED(LIBC, "${LIBC}")
   if test "${LIBC}" = ""; then
-     AC_MSG_ERROR("not found!")
+     AC_MSG_ERROR([not found!])
   fi
 
   AC_MSG_RESULT($LIBC)
@@ -317,7 +352,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([select(${PROTO})])
 AC_DEFINE_UNQUOTED(SELECT_SIGNATURE, [${PROTO}])
@@ -342,7 +377,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([connect(${PROTO})])
 AC_DEFINE_UNQUOTED(CONNECT_SIGNATURE, [${PROTO}])
@@ -371,7 +406,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([close(${PROTO})])
 AC_DEFINE_UNQUOTED(CLOSE_SIGNATURE, [${PROTO}])
@@ -389,7 +424,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([poll(${PROTO})])
 AC_DEFINE_UNQUOTED(POLL_SIGNATURE, [${PROTO}])
@@ -407,7 +442,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([send(${PROTO})])
 AC_DEFINE_UNQUOTED(SEND_SIGNATURE, [${PROTO}])
@@ -432,7 +467,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([sendto(${PROTO})])
 AC_DEFINE_UNQUOTED(SENDTO_SIGNATURE, [${PROTO}])
@@ -450,7 +485,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([write(${PROTO})])
 AC_DEFINE_UNQUOTED(WRITE_SIGNATURE, [${PROTO}])
@@ -468,7 +503,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([recv(${PROTO})])
 AC_DEFINE_UNQUOTED(RECV_SIGNATURE, [${PROTO}])
@@ -493,7 +528,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([recvfrom(${PROTO})])
 AC_DEFINE_UNQUOTED(RECVFROM_SIGNATURE, [${PROTO}])
@@ -511,7 +546,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([read(${PROTO})])
 AC_DEFINE_UNQUOTED(READ_SIGNATURE, [${PROTO}])
@@ -536,7 +571,7 @@ do
   fi
 done
 if test "${PROTO}" = ""; then
-  AC_MSG_ERROR("no match found!")
+  AC_MSG_ERROR([no match found!])
 fi
 AC_MSG_RESULT([getpeername(${PROTO})])
 AC_DEFINE_UNQUOTED(GETPEERNAME_SIGNATURE, [${PROTO}])

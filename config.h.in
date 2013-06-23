@@ -25,8 +25,15 @@
    our version */
 #undef DEFINE_STRSEP
 
+/* Enable ipv6 interception in tsocks */
+#undef ENABLE_IPV6
+
 /* Prototype and function header for getpeername function */
 #undef GETPEERNAME_SIGNATURE
+
+/* We need the getaddrinfo() function to do dns lookups in tsocks or in
+   inspectsocks */
+#undef HAVE_GETADDRINFO
 
 /* We need the gethostbyname() function to do dns lookups in tsocks or in
    inspectsocks */
@@ -39,6 +46,18 @@
 /* Work out which function we have for conversion from string IPs to numerical
    ones */
 #undef HAVE_INET_ATON
+
+/* Work out which function we have for conversion from numerical IPs to string
+   ones */
+#undef HAVE_INET_NTOA
+
+/* Work out which function we have for conversion from numerical IPs to string
+   ones */
+#undef HAVE_INET_NTOP
+
+/* Work out which function we have for conversion from string IPs to numerical
+   ones */
+#undef HAVE_INET_PTON
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -93,10 +112,10 @@
    reasons, it also introduces overhead, but people seem to want it */
 #undef HOSTNAMES
 
-/* path to libc, needed if USE_OLD_DLSYM is enabled */
+/* Path to libc, needed if USE_OLD_DLSYM is enabled */
 #undef LIBC
 
-/* path to library containing connect(), needed if USE_OLD_DLSYM is enabled */
+/* Path to library containing connect(), needed if USE_OLD_DLSYM is enabled */
 #undef LIBCONNECT
 
 /* Define to the address where bug reports for this package should be sent. */

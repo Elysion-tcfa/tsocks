@@ -222,7 +222,9 @@ int connect(CONNECT_SIGNATURE) {
 	struct sockaddr *peer_address;
 	struct sockaddr *server_address;
 	struct sockaddr_in server_address4;
+#ifdef ENABLE_IPV6
 	struct sockaddr_in6 server_address6;
+#endif
 	int gotvalidserver = 0, rc, namelen = 30;
 	int sock_type = -1;
 	int sock_type_len = sizeof(sock_type);
@@ -252,8 +254,11 @@ int connect(CONNECT_SIGNATURE) {
 
 	/* If this isn't an INET socket for a TCP stream we can't  */
 	/* handle it, just call the real connect now               */
-	if ((connaddr->sa_family != AF_INET && connaddr->sa_family != AF_INET6) ||
-		 (sock_type != SOCK_STREAM)) {
+	if ((connaddr->sa_family != AF_INET
+#ifdef ENABLE_IPV6
+				&& connaddr->sa_family != AF_INET6
+#endif
+				) || (sock_type != SOCK_STREAM)) {
 		show_msg(MSGDEBUG, "Connection isn't a TCP stream ignoring\n");
 		return(realconnect(__fd, __addr, __len));
 	}
@@ -356,14 +361,18 @@ int connect(CONNECT_SIGNATURE) {
 								  "specified for this path\n",
 						path->lineno);
 	} else {
+#ifdef ENABLE_IPV6
 		if ((res = resolve_ip(AF_INET6, path->address, 0, HOSTNAMES, &server_address6)) == -1) {
+#endif
 			res = resolve_ip(AF_INET, path->address, 0, HOSTNAMES, &server_address4);
 			server_address = (struct sockaddr *) &server_address4;
 			af = AF_INET;
+#ifdef ENABLE_IPV6
 		} else {
 			server_address = (struct sockaddr *) &server_address6;
 			af = AF_INET6;
 		}
+#endif
 		if (res == -1) {
 			show_msg(MSGERR, "The SOCKS server (%s) listed in the configuration "
 					"file which needs to be used for this connection "
@@ -372,18 +381,22 @@ int connect(CONNECT_SIGNATURE) {
 			/* Construct the addr for the socks server */
 			if (af == AF_INET)
 				server_address4.sin_port = htons(path->port);
+#ifdef ENABLE_IPV6
 			else
 				server_address6.sin6_port = htons(path->port);
+#endif
 
 			/* Complain if this server isn't on a localnet */
 			if (af == AF_INET && is_local(config, af, &server_address4.sin_addr)) {
 				inet_ntop(af, &server_address4.sin_addr, buf, 60);
 				show_msg(MSGERR, "SOCKS server %s (%s) is not on a local subnet!\n",
 						path->address, buf);
+#ifdef ENABLE_IPV6
 			} else if (af == AF_INET6 && is_local(config, af, &server_address6.sin6_addr)) {
 				inet_ntop(af, &server_address6.sin6_addr, buf, 60);
 				show_msg(MSGERR, "SOCKS server %s (%s) is not on a local subnet!\n",
 						path->address, buf);
+#endif
 			} else
 				gotvalidserver = 1;
 		}
@@ -1147,12 +1160,14 @@ static int send_socksv4_request(struct connreq *conn) {
 	struct sockreq *thisreq;
 	struct sockaddr *connaddr = conn->connaddr;
 	
+#ifdef ENABLE_IPV6
 	/* If current connection is IPv6, raise an error */
 	if (connaddr->sa_family == AF_INET6) {
 		show_msg(MSGERR, "SOCKS v4 does not support IPv6");
 		conn->state = FAILED;
 		return(ECONNREFUSED);
 	}
+#endif
 	
 	/* Determine the current username */
 	user = getpwuid(getuid());	
