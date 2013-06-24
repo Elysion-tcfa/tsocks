@@ -93,36 +93,54 @@ const char *__attribute__ ((visibility ("hidden"))) inet_ntop(int af, const void
 }
 #endif
 
-int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip, void *net) {
+int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip, int net) {
+	int i = 0;
+	unsigned char *testaddr, *addr;
 #ifdef ENABLE_IPV6
-	if (af == AF_INET)
+	if (af == AF_INET) {
 #endif
-		return (((struct in_addr *) testip) -> s_addr & ((struct in_addr *) net) -> s_addr) == (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr);
-#ifdef ENABLE_IPV6
-	else {
-		int i = 0;
-		for (; i < 16; i ++)
-		if ((((struct in6_addr *) testip) -> s6_addr[i] & ((struct in6_addr *) net) -> s6_addr[i]) != (((struct in6_addr *) ip) -> s6_addr[i] & ((struct in6_addr *) net) -> s6_addr[i]))
+		testaddr = (unsigned char *) & ((struct in_addr *) testip) -> s_addr;
+		addr = (unsigned char *) & ((struct in_addr *) ip) -> s_addr;
+		for (; i < net / 8; i++)
+			if (testaddr[i] != addr[i])
 				return 0;
-		return 1;
+		if (net % 8)
+			return (testaddr[i] & (-1) << (8 - net % 8)) == (addr[i] & (-1) << (8 - net % 8));
+		else
+			return 1;
+#ifdef ENABLE_IPV6
+	} else {
+		testaddr = ((struct in6_addr *) testip) -> s6_addr;
+		addr = ((struct in6_addr *) ip) -> s6_addr;
+		for (; i < net / 8; i++)
+			if (testaddr[i] != addr[i])
+				return 0;
+		if (net % 8)
+			return (testaddr[i] & (-1) << (8 - net % 8)) == (addr[i] & (-1) << (8 - net % 8));
+		else
+			return 1;
 	}
 #endif
 }
 
-int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, void *net) {
+int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, int net) {
+	int i = net / 8 + 1;
+	unsigned char *addr;
 #ifdef ENABLE_IPV6
-	if (af == AF_INET)
+	if (af == AF_INET) {
 #endif
-		return (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr)
-			== ((struct in_addr *) ip) -> s_addr;
-#ifdef ENABLE_IPV6
-	else {
-		int i = 0;
-		for (; i < 16; i ++)
-			if ((((struct in6_addr *) ip) -> s6_addr[i] & ((struct in6_addr *) net) -> s6_addr[i])
-					!= ((struct in6_addr *) ip) -> s6_addr[i])
+		addr = (unsigned char *) & ((struct in_addr *) ip) -> s_addr;
+		for (; i < 4; i++)
+			if (addr[i] != 0)
 				return 0;
-		return 1;
+		return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
+#ifdef ENABLE_IPV6
+	} else {
+		addr = ((struct in6_addr *) ip) -> s6_addr;
+		for (; i < 16; i++)
+			if (addr[i] != 0)
+				return 0;
+		return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
 	}
 #endif
 }

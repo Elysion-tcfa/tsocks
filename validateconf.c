@@ -155,9 +155,8 @@ void show_conf(struct parsedfile *config) {
 	net = (config->localnets);
 	while (net != NULL) {
 		inet_ntop(net->af, net->localip, buf, 60);
-		printf("Network: %40s ", buf);
-		inet_ntop(net->af, net->localnet, buf, 60);
-		printf("NetMask: %40s\n", buf);
+		printf("Network: %40s   ", buf);
+		printf("Prefixlen: %5d\n", net->localnet);
 		net = net->next;
 	}
 	printf("\n");
@@ -273,9 +272,8 @@ void show_server(struct parsedfile *config, struct serverent *server, int def) {
 		net = server->reachnets;
 		while (net != NULL) {
 			inet_ntop(net->af, net->localip, buf, 60);
-			printf("Network: %40s ", buf);
-			inet_ntop(net->af, net->localnet, buf, 60);
-			printf("NetMask: %40s ", buf);
+			printf("Network: %40s   ", buf);
+			printf("Prefixlen: %5d ", net->localnet);
 			if (net->startport)
 				printf("Ports: %5lu - %5lu",
 						 net->startport, net->endport);

@@ -114,7 +114,7 @@ An IP/Prefix_size pair specifying a network which may be accessed directly
 without proxying through a SOCKS server (e.g "local = 10.0.0.0/8").
 Obviously all SOCKS server IP addresses must be in networks specified as
 local, otherwise tsocks would need a SOCKS server to reach SOCKS servers.
-Notice that IPv6 addresses should be wrapped by a pair of square brackets,
+Notice that IPv6 addresses can be wrapped by a pair of square brackets,
 like the format of 'reaches'.
 
 .TP
@@ -127,8 +127,10 @@ SOCKS server specified in this path block. For example, in a path block
 specified in the current path block should be used to access any IPs in the
 range 150.0.0.0 to 150.255.255.255 when the connection request is for ports
 80\-1024.
-Notice that IPv6 addresses, to avoid ambiguity, should be wrapped by
-a pair of square brackets "[" and "]". For example, "[2404::]:80/16".
+Notice that IPv6 addresses with port specification, to avoid ambiguity,
+should be wrapped by a pair of square brackets "[" and "]". For example,
+"[2404::]:80/16". IPv6 addresses without port specification can also be
+wrapped by brackets, but it is optional.
 
 .TP
 .I fallback

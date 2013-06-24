@@ -87,7 +87,7 @@ int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct p
 			   "(%s), assuming all networks local\n", filename);
 		handle_local(config, 0, "0.0.0.0/0");
 #ifdef ENABLE_IPV6
-		handle_local(config, 0, "[::]/0");
+		handle_local(config, 0, "::/0");
 #endif
 		rc = 1; /* Severe errors reading configuration */
 	}	
@@ -107,8 +107,8 @@ int __attribute__ ((visibility ("hidden"))) read_config(char *filename, struct p
 		/* Always add the 127.0.0.1/8, [::1]/128 and [::ffff:127.0.0.0]/104 subnet to local */
 		handle_local(config, 0, "127.0.0.0/8");
 #ifdef ENABLE_IPV6
-		handle_local(config, 0, "[::1]/128");
-		handle_local(config, 0, "[::ffff:127.0.0.0]/104");
+		handle_local(config, 0, "::1/128");
+		handle_local(config, 0, "::ffff:127.0.0.0/104");
 #endif
 
 		/* Check default server */
@@ -243,8 +243,8 @@ static int handle_path(struct parsedfile *config, int lineno, int nowords, char 
 	} else {
 		/* Open up a new serverent, put it on the list   */
 		/* then set the current context                  */
-		if (((int) (newserver = (struct serverent *) malloc(sizeof(struct serverent)))) == -1)
-			exit(-1);	
+		if ((newserver = (struct serverent *) malloc(sizeof(struct serverent))) == NULL)
+			exit(-1);
 
 		/* Initialize the structure */
 		show_msg(MSGDEBUG, "New server structure from line %d in configuration file going "
@@ -279,8 +279,7 @@ static int handle_endpath(struct parsedfile *config, int lineno, int nowords, ch
 static int handle_reaches(struct parsedfile *config, int lineno, char *value) {
 	int rc;
 	struct netent *ent;
-	char buf[30];
-	char buf2[30];
+	char buf[60];
 
 	rc = make_netent(value, &ent);
 	switch(rc) {
@@ -305,12 +304,11 @@ static int handle_reaches(struct parsedfile *config, int lineno, char *value) {
 			return(0);
 			break;
 		case 4:
-			inet_ntop(ent -> af, ent -> localip, buf, 30);
-			inet_ntop(ent -> af, ent -> localnet, buf2, 30);
-			show_msg(MSGERR, "IP (%s) & ", buf);
-			show_msg(MSGERR, "SUBNET (%s) != IP on line %d in "
+			inet_ntop(ent -> af, ent -> localip, buf, 60);
+			show_msg(MSGERR, "IP (%s) is not the first address "
+					"of the given subnet (%s/%d) on line %d in "
 					"configuration file, ignored\n",
-					buf2, lineno);
+					buf, buf, ent -> localnet, lineno);
 			return(0);
 			break;
 		case 5:
@@ -461,8 +459,7 @@ static int handle_type(struct parsedfile *config, int lineno, char *value) {
 static int handle_local(struct parsedfile *config, int lineno, char *value) {
 	int rc;
 	struct netent *ent;
-	char buf[30];
-	char buf2[30];
+	char buf[60];
 
 	if (currentcontext != &(config -> defaultserver)) {
 		show_msg(MSGERR, "Local networks cannot be specified in path "
@@ -494,12 +491,11 @@ static int handle_local(struct parsedfile *config, int lineno, char *value) {
 			return(0);
 			break;
 		case 4:
-			inet_ntop(ent -> af, ent -> localip, buf, 30);
-			inet_ntop(ent -> af, ent -> localnet, buf2, 30);
-			show_msg(MSGERR, "IP (%s) & ", buf);
-			show_msg(MSGERR, "SUBNET (%s) != IP on line %d in "
+			inet_ntop(ent -> af, ent -> localip, buf, 60);
+			show_msg(MSGERR, "IP (%s) is not the first address "
+					"of the given subnet (%s/%d) on line %d in "
 					"configuration file, ignored\n",
-					buf2, lineno);
+					buf, buf, ent -> localnet, lineno);
 			return(0);
 		case 5:
 		case 6:
@@ -549,8 +545,8 @@ int make_netent(char *value, struct netent **ent) {
 	char *endport = NULL;
 	char *badchar;
 	char separator;
-	char tmp;
 	static char buf[200];
+	char ipbuf[30];
 	char *split;
 	int af;
 
@@ -561,19 +557,31 @@ int make_netent(char *value, struct netent **ent) {
 
 	/* Now rip it up */
 #ifdef ENABLE_IPV6
+	/* [IPv6]/Prefixlen format */
 	if (split[0] == '[') {
 		af = AF_INET6;
 		*split = '\0';
 		split ++;
-		ip = strsplit(&tmp, &split, "]");
+		ip = strsplit(&separator, &split, "]");
 		separator = *split;
 		*split = '\0';
 		split ++;
 	} else {
 #endif
+		/* IPv4/Prefixlen format */
 		af = AF_INET;
+		char *tmp = split;
 		ip = strsplit(&separator, &split, "/:");
 #ifdef ENABLE_IPV6
+		/* If ip is not a valid IPv4 address, they might be using
+		 * IPv6/Prefixlen format, without portno */
+		if (separator == ':' && inet_pton(AF_INET, ip, ipbuf) == 0) {
+			split --;
+			*split = ':';
+			split = tmp;
+			af = AF_INET6;
+			ip = strsplit(&separator, &split, "/");
+		}
 	}
 #endif
 	if (separator == ':') {
@@ -620,17 +628,10 @@ int make_netent(char *value, struct netent **ent) {
 		free(*ent);
 		return(3);
 	}
-	if (((*ent) -> localnet = malloc(getinaddrsize(af))) == NULL) {
-		exit(1);
-	}
-	bzero((*ent) -> localnet, getinaddrsize(af));
-	memset((*ent) -> localnet, -1, subnet / 8);
-	if (subnet % 8)
-		((char *) (*ent) -> localnet)[subnet / 8] = -1 << (8 - subnet % 8);
+	(*ent) -> localnet = subnet;
 	if (!check(af, (*ent) -> localip, (*ent) -> localnet)) {
 		/* Subnet and Ip != Ip */
 		free((*ent) -> localip);
-		free((*ent) -> localnet);
 		free(*ent);
 		return(4);
 	}
@@ -639,7 +640,6 @@ int make_netent(char *value, struct netent **ent) {
 					(*badchar != 0) || ((*ent)->startport > 65535))) {
 		/* Bad start port */
 		free((*ent) -> localip);
-		free((*ent) -> localnet);
 		free(*ent);
 		return(5);
 	}
@@ -648,14 +648,12 @@ int make_netent(char *value, struct netent **ent) {
 					(*badchar != 0) || ((*ent)->endport > 65535))) {
 		/* Bad end port */
 		free((*ent) -> localip);
-		free((*ent) -> localnet);
 		free(*ent);
 		return(6);
 	}
 	if (((*ent)->startport > (*ent)->endport) && !(startport && !endport)) {
 		/* End port is less than start port */
 		free((*ent) -> localip);
-		free((*ent) -> localnet);
 		free(*ent);
 		return(7);
 	}
@@ -680,9 +678,9 @@ int __attribute__ ((visibility ("hidden"))) is_local(struct parsedfile *config, 
 int __attribute__ ((visibility ("hidden"))) pick_server(struct parsedfile *config, struct serverent **ent,
 				int af, void *ip, unsigned int port) {
 	struct netent *net;	
-	char ipbuf[64], ipbuf2[64];
+	char ipbuf[60];
 
-	inet_ntop(af, ip, ipbuf, 64);
+	inet_ntop(af, ip, ipbuf, 60);
 	show_msg(MSGDEBUG, "Picking appropriate server for %s\n", ipbuf);
 	*ent = config -> paths;
 	while (*ent != NULL) {
@@ -692,10 +690,9 @@ int __attribute__ ((visibility ("hidden"))) pick_server(struct parsedfile *confi
 					((*ent) -> address ? (*ent) -> address : "(No Address)"));
 		net = (*ent) -> reachnets;
 		while (net != NULL) {
-			inet_ntop(af, net -> localip, ipbuf, 64);
-			inet_ntop(af, net -> localnet, ipbuf2, 64);
-			show_msg(MSGDEBUG, "Server can reach %s/%s\n",
-						ipbuf, ipbuf2);
+			inet_ntop(af, net -> localip, ipbuf, 60);
+			show_msg(MSGDEBUG, "Server can reach %s/%d\n",
+						ipbuf, net -> localnet);
 			if (af == net -> af && match(af, ip, net -> localip, net -> localnet) &&
 					(! net -> startport ||
 					 ((net -> startport <= port) && (net -> endport >= port)))) {

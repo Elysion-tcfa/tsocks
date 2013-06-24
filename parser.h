@@ -23,7 +23,7 @@ struct serverent {
 struct netent {
 	int af; /* Address family */
 	void *localip; /* Base IP of the network */
-	void *localnet; /* Mask for the network */
+	int localnet; /* Mask for the network */
 	unsigned long startport; /* Range of ports for the */
 	unsigned long endport;   /* network                */
 	struct netent *next; /* Pointer to next network entry */
