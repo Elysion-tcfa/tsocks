@@ -62,12 +62,6 @@ static int (*realconnect)(CONNECT_SIGNATURE);
 static int (*realselect)(SELECT_SIGNATURE);
 static int (*realpoll)(POLL_SIGNATURE);
 static int (*realclose)(CLOSE_SIGNATURE);
-static ssize_t (*realsend)(SEND_SIGNATURE);
-static ssize_t (*realsendto)(SENDTO_SIGNATURE);
-static ssize_t (*realwrite)(WRITE_SIGNATURE);
-static ssize_t (*realrecv)(RECV_SIGNATURE);
-static ssize_t (*realrecvfrom)(RECVFROM_SIGNATURE);
-static ssize_t (*realread)(READ_SIGNATURE);
 static int (*realgetpeername)(GETPEERNAME_SIGNATURE);
 static struct parsedfile *config;
 static struct connreq *requests = NULL;
@@ -80,12 +74,6 @@ int connect(CONNECT_SIGNATURE);
 int select(SELECT_SIGNATURE);
 int poll(POLL_SIGNATURE);
 int close(CLOSE_SIGNATURE);
-ssize_t send(SEND_SIGNATURE);
-ssize_t sendto(SENDTO_SIGNATURE);
-ssize_t write(WRITE_SIGNATURE);
-ssize_t recv(RECV_SIGNATURE);
-ssize_t recvfrom(RECVFROM_SIGNATURE);
-ssize_t read(READ_SIGNATURE);
 int getpeername(GETPEERNAME_SIGNATURE);
 
 #ifdef USE_SOCKS_DNS
@@ -133,12 +121,6 @@ void _init(void) {
 	realselect = dlsym(RTLD_NEXT, "select");
 	realpoll = dlsym(RTLD_NEXT, "poll");
 	realclose = dlsym(RTLD_NEXT, "close");
-	realsend = dlsym(RTLD_NEXT, "send");
-	realsendto = dlsym(RTLD_NEXT, "sendto");
-	realwrite = dlsym(RTLD_NEXT, "write");
-	realrecv = dlsym(RTLD_NEXT, "recv");
-	realrecvfrom = dlsym(RTLD_NEXT, "recvfrom");
-	realread = dlsym(RTLD_NEXT, "read");
 	realgetpeername = dlsym(RTLD_NEXT, "getpeername");
 	#ifdef USE_SOCKS_DNS
 	realresinit = dlsym(RTLD_NEXT, "res_init");
@@ -148,10 +130,6 @@ void _init(void) {
 	realconnect = dlsym(lib, "connect");
 	realselect = dlsym(lib, "select");
 	realpoll = dlsym(lib, "poll");
-	realsend = dlsym(lib, "send");
-	realsendto = dlsym(lib, "sendto");
-	realrecv = dlsym(lib, "recv");
-	realrecvfrom = dlsym(lib, "recvfrom");
 	realgetpeername = dlsym(lib, "getpeername");
 	#ifdef USE_SOCKS_DNS
 	realresinit = dlsym(lib, "res_init");
@@ -160,8 +138,6 @@ void _init(void) {
 
 	lib = dlopen(LIBC, RTLD_LAZY);
 	realclose = dlsym(lib, "close");
-	realwrite = dlsym(lib, "write");
-	realread = dlsym(lib, "read");
 	dlclose(lib);	
 #endif
 }
@@ -443,9 +419,9 @@ int select(SELECT_SIGNATURE) {
 		conn->selectevents = 0;
 		show_msg(MSGDEBUG, "Checking requests for socks enabled socket %d\n",
 					conn->sockid);
-		conn->selectevents |= (writefds ? (FD_ISSET(conn->orisockid, writefds) ? WRITE : 0) : 0);
-		conn->selectevents |= (readfds ? (FD_ISSET(conn->orisockid, readfds) ? READ : 0) : 0);
-		conn->selectevents |= (exceptfds ? (FD_ISSET(conn->orisockid, exceptfds) ? EXCEPT : 0) : 0);
+		conn->selectevents |= (writefds ? (FD_ISSET(conn->sockid, writefds) ? WRITE : 0) : 0);
+		conn->selectevents |= (readfds ? (FD_ISSET(conn->sockid, readfds) ? READ : 0) : 0);
+		conn->selectevents |= (exceptfds ? (FD_ISSET(conn->sockid, exceptfds) ? EXCEPT : 0) : 0);
 		if (conn->selectevents) {
 			show_msg(MSGDEBUG, "Socket %d was set for events\n", conn->sockid);
 			monitoring = 1;
@@ -483,26 +459,6 @@ int select(SELECT_SIGNATURE) {
 			if ((conn->state == FAILED) ||
 				 (conn->selectevents == 0))
 				continue;
-
-			/* Change origin sockid to real sockid */
-			if (FD_ISSET(conn->orisockid, &myreadfds)) {
-				FD_CLR(conn->orisockid, &myreadfds);
-				FD_SET(conn->sockid, &myreadfds);
-				if (n <= conn->sockid)
-					n = conn->sockid + 1;
-			}
-			if (FD_ISSET(conn->orisockid, &mywritefds)) {
-				FD_CLR(conn->orisockid, &mywritefds);
-				FD_SET(conn->sockid, &mywritefds);
-				if (n <= conn->sockid)
-					n = conn->sockid + 1;
-			}
-			if (FD_ISSET(conn->orisockid, &myexceptfds)) {
-				FD_CLR(conn->orisockid, &myexceptfds);
-				FD_SET(conn->sockid, &myexceptfds);
-				if (n <= conn->sockid)
-					n = conn->sockid + 1;
-			}
 
 			if (conn->state == DONE) continue;
 
@@ -613,22 +569,6 @@ int select(SELECT_SIGNATURE) {
 
 	show_msg(MSGDEBUG, "Finished intercepting select(), %d events\n", nevents);
 
-	/* Change real sockid back to origin sockid */
-	for (conn = requests; conn != NULL; conn = conn->next) {
-		if (conn->state == FAILED) continue;
-		if (FD_ISSET(conn->sockid, &myreadfds)) {
-			FD_CLR(conn->sockid, &myreadfds);
-			FD_SET(conn->orisockid, &myreadfds);
-		}
-		if (FD_ISSET(conn->sockid, &mywritefds)) {
-			FD_CLR(conn->sockid, &mywritefds);
-			FD_SET(conn->orisockid, &mywritefds);
-		}
-		if (FD_ISSET(conn->sockid, &myexceptfds)) {
-			FD_CLR(conn->sockid, &myexceptfds);
-			FD_SET(conn->orisockid, &myexceptfds);
-		}
-	}
 	/* Now copy our event blocks back to the client blocks */
 	if (readfds)
 		memcpy(readfds, &myreadfds, sizeof(myreadfds));
@@ -797,8 +737,6 @@ int poll(POLL_SIGNATURE) {
 			continue;
 
 		ufds[i].events = conn->selectevents;
-		/* Change real sockid back to origin sockid */
-		ufds[i].fd = conn->orisockid;
 	}
 
 	return(nevents);
@@ -888,76 +826,6 @@ int getpeername(GETPEERNAME_SIGNATURE) {
 	return rc;
 }
 
-/* Override misc TCP socket system calls */
-
-ssize_t send(SEND_SIGNATURE) {
-	if (realsend == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: send\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(socket, 1)) != NULL)
-		return realsend(conn->sockid, buffer, length, flags);
-	else
-		return realsend(socket, buffer, length, flags);
-}
-ssize_t sendto(SENDTO_SIGNATURE) {
-	if (realsendto == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: sendto\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(socket, 1)) != NULL)
-		return realsendto(conn->sockid, message, length, flags, NULL, 0);
-	else
-		return realsendto(socket, message, length, flags, dest_addr, dest_len);
-}
-ssize_t write(WRITE_SIGNATURE) {
-	if (realwrite == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: write\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(fildes, 1)) != NULL) 
-		return realwrite(conn->sockid, buf, nbyte);
-	else
-		return realwrite(fildes, buf, nbyte);
-}
-
-ssize_t recv(RECV_SIGNATURE) {
-	if (realrecv == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: recv\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(socket, 1)) != NULL)
-		return realrecv(conn->sockid, buffer, length, flags);
-	else
-		return realrecv(socket, buffer, length, flags);
-}
-ssize_t recvfrom(RECVFROM_SIGNATURE) {
-	if (realrecvfrom == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: recvfrom\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(socket, 1)) != NULL)
-		return realrecvfrom(conn->sockid, buffer, length, flags, NULL, NULL);
-	else
-		return realrecvfrom(socket, buffer, length, flags, address, address_len);
-}
-ssize_t read(READ_SIGNATURE) {
-	if (realread == NULL) {
-		show_msg(MSGERR, "Unresolved symbol: read\n");
-		return(-1);
-	}
-	struct connreq *conn;
-	if ((conn = find_socks_request(fildes, 1)) != NULL)
-		return realread(conn->sockid, buf, nbyte);
-	else
-		return realread(fildes, buf, nbyte);
-}
-
 static struct connreq *new_socks_request(int sockid, struct sockaddr *connaddr,
 													  struct sockaddr *serveraddr,
 													  struct serverent *path) {
@@ -971,12 +839,25 @@ static struct connreq *new_socks_request(int sockid, struct sockaddr *connaddr,
 
 	/* Add this connection to be proxied to the list */
 	memset(newconn, 0x0, sizeof(*newconn));
-	newconn->sockid = newconn->orisockid = sockid;
-	if (serveraddr->sa_family != connaddr->sa_family)
+	newconn->sockid = sockid;
+
+	/* If the address family of the server is different from the socket, create a new one */
+	if (serveraddr->sa_family != connaddr->sa_family) {
 		newconn->sockid = socket(serveraddr->sa_family, SOCK_STREAM, 0);
+		int flags = fcntl(sockid, F_GETFL);
+		fcntl(newconn->sockid, F_SETFL, flags);
+#ifdef HAVE_DUP2
+		dup2(newconn->sockid, sockid);
+#else
+		close(sockid);
+		fcntl(newconn->sockid, F_DUPFD, sockid);
+#endif
+	}
+
 	newconn->state = UNSTARTED;
 	newconn->path = path;
 	newconn->pointer = newconn->buffer;
+
 	int connsize = getsockaddrsize(connaddr->sa_family);
 	int serversize = getsockaddrsize(serveraddr->sa_family);
 	if ((newconn->connaddr = (struct sockaddr *) malloc(connsize)) == NULL)
@@ -1014,7 +895,7 @@ static struct connreq *find_socks_request(int sockid, int includefinished) {
 	struct connreq *connnode;
 
 	for (connnode = requests; connnode != NULL; connnode = connnode->next) {
-		if (connnode->orisockid == sockid) {
+		if (connnode->sockid == sockid) {
 			if ((connnode->state == FAILED) &&
 				 !includefinished)
 				break;
@@ -1246,7 +1127,7 @@ static int send_buffer(struct connreq *conn) {
 
 	show_msg(MSGDEBUG, "Writing to server (sending %d bytes)\n", conn->datalen);
 	while ((rc == 0) && (conn->datadone != conn->datalen)) {
-		rc = realsend(conn->sockid, conn->buffer + conn->datadone,
+		rc = send(conn->sockid, conn->buffer + conn->datadone,
 					 conn->datalen - conn->datadone, 0);
 		if (rc > 0) {
 			conn->datadone += rc;
@@ -1275,7 +1156,7 @@ static int recv_buffer(struct connreq *conn) {
 
 	show_msg(MSGDEBUG, "Reading from server (expecting %d bytes)\n", conn->datalen);
 	while ((rc == 0) && (conn->datadone != conn->datalen)) {
-		rc = realrecv(conn->sockid, conn->pointer + conn->datadone,
+		rc = recv(conn->sockid, conn->pointer + conn->datadone,
 					 conn->datalen - conn->datadone, 0);
 		if (rc > 0) {
 			conn->datadone += rc;

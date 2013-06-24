@@ -31,6 +31,9 @@
 /* Prototype and function header for getpeername function */
 #undef GETPEERNAME_SIGNATURE
 
+/* Detect if dup2 is available, otherwise we use fcntl */
+#undef HAVE_DUP2
+
 /* We need the getaddrinfo() function to do dns lookups in tsocks or in
    inspectsocks */
 #undef HAVE_GETADDRINFO
@@ -139,23 +142,8 @@
 /* Prototype and function header for poll function */
 #undef POLL_SIGNATURE
 
-/* Prototype and function header for read function */
-#undef READ_SIGNATURE
-
-/* Prototype and function header for recvfrom function */
-#undef RECVFROM_SIGNATURE
-
-/* Prototype and function header for recv function */
-#undef RECV_SIGNATURE
-
 /* Prototype and function header for select function */
 #undef SELECT_SIGNATURE
-
-/* Prototype and function header for sendto function */
-#undef SENDTO_SIGNATURE
-
-/* Prototype and function header for send function */
-#undef SEND_SIGNATURE
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
@@ -170,6 +158,3 @@
 /* Configure the system resolver to use TCP queries on startup, this allows
    socksified DNS */
 #undef USE_SOCKS_DNS
-
-/* Prototype and function header for write function */
-#undef WRITE_SIGNATURE

@@ -94,8 +94,11 @@ const char *__attribute__ ((visibility ("hidden"))) inet_ntop(int af, const void
 #endif
 
 int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip, void *net) {
+#ifdef ENABLE_IPV6
 	if (af == AF_INET)
+#endif
 		return (((struct in_addr *) testip) -> s_addr & ((struct in_addr *) net) -> s_addr) == (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr);
+#ifdef ENABLE_IPV6
 	else {
 		int i = 0;
 		for (; i < 16; i ++)
@@ -103,12 +106,16 @@ int __attribute__ ((visibility ("hidden"))) match(int af, void *testip, void *ip
 				return 0;
 		return 1;
 	}
+#endif
 }
 
 int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, void *net) {
+#ifdef ENABLE_IPV6
 	if (af == AF_INET)
+#endif
 		return (((struct in_addr *) ip) -> s_addr & ((struct in_addr *) net) -> s_addr)
 			== ((struct in_addr *) ip) -> s_addr;
+#ifdef ENABLE_IPV6
 	else {
 		int i = 0;
 		for (; i < 16; i ++)
@@ -117,6 +124,7 @@ int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, void *net) {
 				return 0;
 		return 1;
 	}
+#endif
 }
 
 int __attribute__ ((visibility ("hidden"))) resolve_ip(int af, char *host, int showmsg, int allownames, void *host_addr) {

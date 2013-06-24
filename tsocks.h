@@ -27,7 +27,6 @@ struct sockrep {
 struct connreq {
 	/* Information about the socket and target */
 	int sockid;
-	int orisockid;
 	struct sockaddr *connaddr;
 	struct sockaddr *serveraddr;
 

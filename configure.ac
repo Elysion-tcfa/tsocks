@@ -41,20 +41,10 @@ AH_TEMPLATE([POLL_SIGNATURE],
 			[Prototype and function header for poll function])
 AH_TEMPLATE([CLOSE_SIGNATURE],
 			[Prototype and function header for close function])
-AH_TEMPLATE([SEND_SIGNATURE],
-			[Prototype and function header for send function])
-AH_TEMPLATE([SENDTO_SIGNATURE],
-			[Prototype and function header for sendto function])
-AH_TEMPLATE([WRITE_SIGNATURE],
-			[Prototype and function header for write function])
-AH_TEMPLATE([RECV_SIGNATURE],
-			[Prototype and function header for recv function])
-AH_TEMPLATE([RECVFROM_SIGNATURE],
-			[Prototype and function header for recvfrom function])
-AH_TEMPLATE([READ_SIGNATURE],
-			[Prototype and function header for read function])
 AH_TEMPLATE([GETPEERNAME_SIGNATURE],
 			[Prototype and function header for getpeername function])
+AH_TEMPLATE([HAVE_DUP2],
+			[Detect if dup2 is available, otherwise we use fcntl])
 AH_TEMPLATE([HAVE_INET_ADDR],
 			[Work out which function we have for conversion from string IPs to 
 			 numerical ones])
@@ -157,6 +147,7 @@ AC_CHECK_HEADERS(unistd.h)
 dnl Checks for library functions.
 AC_CHECK_FUNCS(strcspn strdup strerror strspn strtol,,[
 	       AC_MSG_ERROR([Required function not found])])
+AC_CHECK_FUNC(dup2, AC_DEFINE(HAVE_DUP2))
 
 dnl First find the library that contains connect() (obviously
 dnl the most important library for us). Once we've found it
@@ -428,128 +419,6 @@ if test "${PROTO}" = ""; then
 fi
 AC_MSG_RESULT([poll(${PROTO})])
 AC_DEFINE_UNQUOTED(POLL_SIGNATURE, [${PROTO}])
-
-dnl Find the correct send prototype on this machine
-AC_MSG_CHECKING(for correct send prototype)
-PROTO=
-for testproto in 'int socket, const void *buffer, size_t length, int flags'
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <sys/socket.h>
-      ssize_t send($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([send(${PROTO})])
-AC_DEFINE_UNQUOTED(SEND_SIGNATURE, [${PROTO}])
-
-dnl Find the correct sendto prototype on this machine
-AC_MSG_CHECKING(for correct sendto prototype)
-PROTO=
-PROTO1='int socket, const void *message, size_t length, int flags, const struct sockaddr * dest_addr, int dest_len'
-PROTO2='int socket, const void *message, size_t length, int flags, const struct sockaddr_in * dest_addr, socklen_t dest_len'
-PROTO3='int socket, const void *message, size_t length, int flags, struct sockaddr * dest_addr, int dest_len'
-PROTO4='int socket, const void *message, size_t length, int flags, const struct sockaddr * dest_addr, socklen_t dest_len'
-for testproto in "${PROTO1}" \
-                 "${PROTO2}" \
-                 "${PROTO3}" \
-                 "${PROTO4}"
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <sys/socket.h>
-      ssize_t sendto($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([sendto(${PROTO})])
-AC_DEFINE_UNQUOTED(SENDTO_SIGNATURE, [${PROTO}])
-
-dnl Find the correct write prototype on this machine
-AC_MSG_CHECKING(for correct write prototype)
-PROTO=
-for testproto in 'int fildes, const void *buf, size_t nbyte'
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <unistd.h>
-      ssize_t write($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([write(${PROTO})])
-AC_DEFINE_UNQUOTED(WRITE_SIGNATURE, [${PROTO}])
-
-dnl Find the correct recv prototype on this machine
-AC_MSG_CHECKING(for correct recv prototype)
-PROTO=
-for testproto in 'int socket, void *buffer, size_t length, int flags'
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <sys/socket.h>
-      ssize_t recv($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([recv(${PROTO})])
-AC_DEFINE_UNQUOTED(RECV_SIGNATURE, [${PROTO}])
-
-dnl Find the correct recvfrom prototype on this machine
-AC_MSG_CHECKING(for correct recvfrom prototype)
-PROTO=
-PROTO1='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, int *address_len'
-PROTO2='int socket, void *buffer, size_t length, int flags, struct sockaddr_in * address, socklen_t *address_len'
-PROTO3='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, int *address_len'
-PROTO4='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, socklen_t *address_len'
-for testproto in "${PROTO1}" \
-                 "${PROTO2}" \
-                 "${PROTO3}" \
-                 "${PROTO4}"
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <sys/socket.h>
-      ssize_t recvfrom($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([recvfrom(${PROTO})])
-AC_DEFINE_UNQUOTED(RECVFROM_SIGNATURE, [${PROTO}])
-
-dnl Find the correct write prototype on this machine
-AC_MSG_CHECKING(for correct read prototype)
-PROTO=
-for testproto in 'int fildes, void *buf, size_t nbyte'
-do
-  if test "${PROTO}" = ""; then
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-      #include <unistd.h>
-      ssize_t read($testproto);
-    ]], [[]])],[PROTO="$testproto";],[])
-  fi
-done
-if test "${PROTO}" = ""; then
-  AC_MSG_ERROR([no match found!])
-fi
-AC_MSG_RESULT([read(${PROTO})])
-AC_DEFINE_UNQUOTED(READ_SIGNATURE, [${PROTO}])
 
 dnl Find the correct getpeername prototype on this machine
 AC_MSG_CHECKING(for correct getpeername prototype)

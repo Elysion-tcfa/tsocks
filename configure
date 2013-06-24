@@ -2143,11 +2143,6 @@ ac_config_headers="$ac_config_headers config.h"
 
 
 
-
-
-
-
-
 $as_echo "#define HOSTNAMES 0" >>confdefs.h
 
 
@@ -3698,6 +3693,12 @@ else
 fi
 done
 
+ac_fn_c_check_func "$LINENO" "dup2" "ac_cv_func_dup2"
+if test "x$ac_cv_func_dup2" = xyes; then :
+  $as_echo "#define HAVE_DUP2 1" >>confdefs.h
+
+fi
+
 
 OLDLIBS="${LIBS}"
 LIBS=
@@ -4410,236 +4411,6 @@ fi
 $as_echo "poll(${PROTO})" >&6; }
 cat >>confdefs.h <<_ACEOF
 #define POLL_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct send prototype" >&5
-$as_echo_n "checking for correct send prototype... " >&6; }
-PROTO=
-for testproto in 'int socket, const void *buffer, size_t length, int flags'
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <sys/socket.h>
-      ssize_t send($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: send(${PROTO})" >&5
-$as_echo "send(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define SEND_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct sendto prototype" >&5
-$as_echo_n "checking for correct sendto prototype... " >&6; }
-PROTO=
-PROTO1='int socket, const void *message, size_t length, int flags, const struct sockaddr * dest_addr, int dest_len'
-PROTO2='int socket, const void *message, size_t length, int flags, const struct sockaddr_in * dest_addr, socklen_t dest_len'
-PROTO3='int socket, const void *message, size_t length, int flags, struct sockaddr * dest_addr, int dest_len'
-PROTO4='int socket, const void *message, size_t length, int flags, const struct sockaddr * dest_addr, socklen_t dest_len'
-for testproto in "${PROTO1}" \
-                 "${PROTO2}" \
-                 "${PROTO3}" \
-                 "${PROTO4}"
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <sys/socket.h>
-      ssize_t sendto($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: sendto(${PROTO})" >&5
-$as_echo "sendto(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define SENDTO_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct write prototype" >&5
-$as_echo_n "checking for correct write prototype... " >&6; }
-PROTO=
-for testproto in 'int fildes, const void *buf, size_t nbyte'
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <unistd.h>
-      ssize_t write($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: write(${PROTO})" >&5
-$as_echo "write(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define WRITE_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct recv prototype" >&5
-$as_echo_n "checking for correct recv prototype... " >&6; }
-PROTO=
-for testproto in 'int socket, void *buffer, size_t length, int flags'
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <sys/socket.h>
-      ssize_t recv($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: recv(${PROTO})" >&5
-$as_echo "recv(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define RECV_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct recvfrom prototype" >&5
-$as_echo_n "checking for correct recvfrom prototype... " >&6; }
-PROTO=
-PROTO1='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, int *address_len'
-PROTO2='int socket, void *buffer, size_t length, int flags, struct sockaddr_in * address, socklen_t *address_len'
-PROTO3='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, int *address_len'
-PROTO4='int socket, void *buffer, size_t length, int flags, struct sockaddr * address, socklen_t *address_len'
-for testproto in "${PROTO1}" \
-                 "${PROTO2}" \
-                 "${PROTO3}" \
-                 "${PROTO4}"
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <sys/socket.h>
-      ssize_t recvfrom($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: recvfrom(${PROTO})" >&5
-$as_echo "recvfrom(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define RECVFROM_SIGNATURE ${PROTO}
-_ACEOF
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for correct read prototype" >&5
-$as_echo_n "checking for correct read prototype... " >&6; }
-PROTO=
-for testproto in 'int fildes, void *buf, size_t nbyte'
-do
-  if test "${PROTO}" = ""; then
-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-      #include <unistd.h>
-      ssize_t read($testproto);
-
-int
-main ()
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  PROTO="$testproto";
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-  fi
-done
-if test "${PROTO}" = ""; then
-  as_fn_error $? "no match found!" "$LINENO" 5
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: read(${PROTO})" >&5
-$as_echo "read(${PROTO})" >&6; }
-cat >>confdefs.h <<_ACEOF
-#define READ_SIGNATURE ${PROTO}
 _ACEOF
 
 

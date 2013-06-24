@@ -95,7 +95,9 @@ void test_host(struct parsedfile *config, char *host) {
 	int af;
 	int flag;
 	struct sockaddr_in addr4;
+#ifdef ENABLE_IPV6
 	struct sockaddr_in6 addr6;
+#endif
 	void *hostaddr;
 	char buf[60];
 
@@ -108,14 +110,18 @@ void test_host(struct parsedfile *config, char *host) {
 	}
 
 	/* First resolve the host to an ip */
+#ifdef ENABLE_IPV6
 	if ((flag = resolve_ip(AF_INET6, hostname, 0, 1, (void *) &addr6)) == -1) {
+#endif
 		af = AF_INET;
 		flag = resolve_ip(AF_INET, hostname, 0, 1, (void *) &addr4);
 		hostaddr = (void *) &addr4.sin_addr;
+#ifdef ENABLE_IPV6
 	} else {
 		af = AF_INET6;
 		hostaddr = (void *) &addr6.sin6_addr;
 	}
+#endif
 	if (flag == -1) {
 		fprintf(stderr, "Error: Cannot resolve %s\n", host);
 		return;
@@ -183,7 +189,9 @@ void show_conf(struct parsedfile *config) {
 
 void show_server(struct parsedfile *config, struct serverent *server, int def) {
 	struct sockaddr_in res4;
+#ifdef ENABLE_IPV6
 	struct sockaddr_in6 res6;
+#endif
 	void *res;
 	struct netent *net;
 	int af;
@@ -192,27 +200,30 @@ void show_server(struct parsedfile *config, struct serverent *server, int def) {
 
 	/* Show address */
 	if (server->address != NULL) {
+#ifdef ENABLE_IPV6
 		if ((flag = resolve_ip(AF_INET6, server->address, 0, HOSTNAMES, (void *) &res6)) == -1) {
+#endif
 			af = AF_INET;
 			flag = resolve_ip(AF_INET, server->address, 0, HOSTNAMES, (void *) &res4);
 			res = (void *) &res4.sin_addr;
+#ifdef ENABLE_IPV6
 		} else {
 			af = AF_INET6;
 			res = (void *) &res6.sin6_addr;
 		}
+#endif
 		if (flag == -1)
 			strcpy(buf, "Invalid!");
 		else
 			inet_ntop(af, res, buf, 60);
 		printf("Server:       %s (%s)\n", server->address, buf);
+
+		/* Check the server is on a local net */
+		if ((flag != -1) && (is_local(config, af, res)))
+			fprintf(stderr, "Error: Server is not on a network "
+					"specified as local\n");
 	} else
 		printf("Server:       ERROR! None specified\n");
-
-	/* Check the server is on a local net */
-	if ((server->address != NULL) && (flag != -1) &&
-			(is_local(config, af, res)))
-		fprintf(stderr, "Error: Server is not on a network "
-				"specified as local\n");
 
 	/* Show port */
 	printf("Port:         %d\n", server->port);

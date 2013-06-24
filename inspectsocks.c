@@ -52,7 +52,9 @@ int main(int argc, char *argv[]) {
 	int read_bytes;
 	int af;
 	struct sockaddr_in server4;
+#ifdef ENABLE_IPV6
 	struct sockaddr_in6 server6;
+#endif
 	void *server;
 
 	if ((argc < 2) || (argc > 3)) {
@@ -70,23 +72,30 @@ int main(int argc, char *argv[]) {
 				exit(1);
 			}
 		case 2:
+#ifdef ENABLE_IPV6
 			if (resolve_ip(AF_INET6, argv[1], 1, HOSTNAMES, (void *) &server6) == -1) {
+#endif
 				if (resolve_ip(AF_INET, argv[1], 1, HOSTNAMES, (void *) &server4) == -1) {
 					show_msg(MSGERR, "Invalid IP/host specified (%s)\n", argv[1]);
 					show_msg(MSGERR, "%s\n", usage);
 					exit(1);
 				}
 				af = AF_INET;
+#ifdef ENABLE_IPV6
 			} else af = AF_INET6;
+#endif
 	}
 
 	if (af == AF_INET) {
 		server4.sin_port = htons(portno);     /* short, network byte order */
 		server = (void *) &server4;
-	} else {
+	}
+#ifdef ENABLE_IPV6
+	else {
 		server6.sin6_port = htons(portno);
 		server = (void *) &server6;
 	}
+#endif
 
 	/* Now, we send a SOCKS V5 request which happens to be */
 	/* the same size as the smallest possible SOCKS V4     */
