@@ -133,14 +133,20 @@ int __attribute__ ((visibility ("hidden"))) check(int af, void *ip, int net) {
 		for (; i < 4; i++)
 			if (addr[i] != 0)
 				return 0;
-		return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
+		if (net < 32)
+			return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
+		else
+			return 1;
 #ifdef ENABLE_IPV6
 	} else {
 		addr = ((struct in6_addr *) ip) -> s6_addr;
 		for (; i < 16; i++)
 			if (addr[i] != 0)
 				return 0;
-		return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
+		if (net < 128)
+			return (addr[net / 8] & (-1) << (8 - net % 8)) == addr[net / 8];
+		else
+			return 1;
 	}
 #endif
 }
